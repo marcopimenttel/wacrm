@@ -57,6 +57,8 @@ interface AccountSummary {
   trial_ends_at: string | null;
   /** Module keys enabled by the account's plan. Empty → fail-open. */
   enabled_modules: string[];
+  billing_cpf_cnpj?: string | null;
+  asaas_invoice_url?: string | null;
 }
 
 interface AuthContextValue {
@@ -194,7 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // SaaS columns from migration 037; select fails soft if the
             // migration hasn't been applied yet — we fall back below.
             .select(
-              "id, name, default_currency, plan_id, subscription_status, trial_ends_at, plans(key, name, plan_modules(module_key))",
+              "id, name, default_currency, plan_id, subscription_status, trial_ends_at, billing_cpf_cnpj, asaas_invoice_url, plans(key, name, plan_modules(module_key))",
             )
             .eq("id", data.account_id)
             .maybeSingle();
@@ -228,6 +230,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 subscription_status: "active",
                 trial_ends_at: null,
                 enabled_modules: [],
+                billing_cpf_cnpj: null,
+                asaas_invoice_url: null,
               };
             }
           } else if (account) {
@@ -254,6 +258,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 : "active",
               trial_ends_at: account.trial_ends_at ?? null,
               enabled_modules: enabled,
+              billing_cpf_cnpj: account.billing_cpf_cnpj ?? null,
+              asaas_invoice_url: account.asaas_invoice_url ?? null,
             };
           }
         }

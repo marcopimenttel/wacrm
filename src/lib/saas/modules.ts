@@ -1,9 +1,8 @@
 /**
  * Catálogo de módulos SaaS + helpers.
  *
- * As chaves espelham `plan_modules.module_key` (migration 037).
- * O grupo WhatsApp tem pai (`whatsapp`) e filhos por rota, para
- * vender o pacote inteiro ou fatiar no futuro.
+ * As chaves espelham `plan_modules.module_key` (migrations 037/038).
+ * Grupos: `whatsapp` e `campaign` com filhos por rota.
  */
 
 export const WHATSAPP_MODULES = [
@@ -19,8 +18,10 @@ export const WHATSAPP_MODULES = [
   "whatsapp.agents",
 ] as const;
 
-/** Chaves de roadmap — só entram no plano quando o módulo existir. */
+/** Hierarquia: Account → Coordenador → Liderança → Apoiador. */
 export const CAMPAIGN_MODULES = [
+  "campaign",
+  "campaign.coordinators",
   "campaign.leaderships",
   "campaign.supporters",
   "campaign.demands",
@@ -46,6 +47,9 @@ export const ROUTE_MODULE: Record<string, ModuleKey> = {
   "/automations": "whatsapp.automations",
   "/flows": "whatsapp.flows",
   "/agents": "whatsapp.agents",
+  "/campaign/coordinators": "campaign.coordinators",
+  "/campaign/leaderships": "campaign.leaderships",
+  "/campaign/supporters": "campaign.supporters",
 };
 
 /** Rótulos amigáveis (pt-BR) para exibir módulos na UI. */
@@ -60,6 +64,8 @@ export const MODULE_LABEL_PT: Record<string, string> = {
   "whatsapp.automations": "Automações",
   "whatsapp.flows": "Fluxos",
   "whatsapp.agents": "Agentes de IA",
+  campaign: "Suite Campanha",
+  "campaign.coordinators": "Coordenadores",
   "campaign.leaderships": "Lideranças",
   "campaign.supporters": "Apoiadores",
   "campaign.demands": "Demandas",
@@ -90,7 +96,7 @@ export function isSubscriptionStatus(
 /**
  * Indica se a conta pode usar o módulo.
  * - Lista vazia/ausente → libera (fail-open na transição).
- * - Pai `whatsapp` libera todos os filhos `whatsapp.*`.
+ * - Pai `whatsapp` / `campaign` libera os filhos `*.`.
  * - past_due / canceled ainda veem módulos; o bloqueio duro vem com o checkout.
  */
 export function canUseModule(
@@ -102,6 +108,12 @@ export function canUseModule(
   if (
     moduleKey.startsWith("whatsapp.") &&
     enabledModules.includes("whatsapp")
+  ) {
+    return true;
+  }
+  if (
+    moduleKey.startsWith("campaign.") &&
+    enabledModules.includes("campaign")
   ) {
     return true;
   }

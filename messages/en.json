@@ -40,6 +40,10 @@
     "menuSettings": "Settings",
     "menuSignOut": "Sign out",
     "groupWhatsApp": "WhatsApp",
+    "groupCampaign": "Campaign",
+    "coordinators": "Coordinators",
+    "leaderships": "Leaderships",
+    "supporters": "Supporters",
     "platform": "Platform"
   },
   "Header": {
@@ -1702,7 +1706,16 @@
         "canceled": "Canceled"
       },
       "trialEnds": "Trial ends on {date}.",
-      "billingSoon": "Automated billing (Asaas/Stripe) ships next. For now the plan is managed by the platform.",
+      "checkoutTitle": "Subscribe or renew via Asaas",
+      "checkoutHint": "Enter CPF/CNPJ and billing cycle. You will be redirected to the Asaas invoice to pay.",
+      "cpfCnpj": "CPF or CNPJ",
+      "cycle": "Cycle",
+      "cycleMonthly": "Monthly",
+      "cycleYearly": "Yearly",
+      "checkoutCta": "Go to payment",
+      "checkoutError": "Could not start Asaas checkout",
+      "checkoutFree": "Free plan activated",
+      "openInvoice": "Open Asaas invoice",
       "modulesTitle": "Included modules",
       "modulesDesc": "Features unlocked by your current plan.",
       "modulesEmpty": "No modules listed yet."
@@ -1846,14 +1859,80 @@
   },
   "Platform": {
     "title": "Platform",
-    "description": "Superadmin view of tenants (accounts) on this install.",
+    "description": "Superadmin view of tenants on this install. Change plan and status directly.",
     "loadError": "Failed to load accounts",
+    "saveError": "Failed to update account",
+    "saveOk": "Account updated",
     "forbiddenTitle": "Restricted access",
     "forbiddenDesc": "Your email is not in PLATFORM_ADMIN_EMAILS.",
     "colName": "Account",
     "colPlan": "Plan",
     "colStatus": "Status",
     "colCreated": "Created",
-    "empty": "No accounts found."
+    "empty": "No accounts found.",
+    "status": {
+      "trial": "Trial",
+      "active": "Active",
+      "past_due": "Past due",
+      "canceled": "Canceled"
+    }
+  },
+  "Campaign": {
+    "coordinators": {
+      "title": "Coordinators",
+      "description": "Level below the tenant. Each coordinator can have many leaderships.",
+      "add": "New coordinator",
+      "empty": "No coordinators yet.",
+      "loadError": "Failed to load coordinators",
+      "saveError": "Failed to save coordinator",
+      "saveOk": "Coordinator created",
+      "dialogTitle": "New coordinator",
+      "colName": "Name",
+      "colPhone": "Phone",
+      "colEmail": "Email",
+      "colStatus": "Status",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "leaderships": {
+      "title": "Leaderships",
+      "description": "Belong to a coordinator and own supporters.",
+      "add": "New leadership",
+      "empty": "No leaderships yet.",
+      "needCoordinator": "Create at least one coordinator before adding leaderships.",
+      "loadError": "Failed to load leaderships",
+      "saveError": "Failed to save leadership",
+      "saveOk": "Leadership created",
+      "dialogTitle": "New leadership",
+      "colName": "Name",
+      "colCoordinator": "Coordinator",
+      "colPhone": "Phone",
+      "colCity": "City",
+      "colState": "State",
+      "colStatus": "Status",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "supporters": {
+      "title": "Supporters",
+      "description": "Belong to a leadership. With a phone number they also sync to Contacts.",
+      "add": "New supporter",
+      "empty": "No supporters yet.",
+      "needLeadership": "Create at least one leadership before adding supporters.",
+      "loadError": "Failed to load supporters",
+      "saveError": "Failed to save supporter",
+      "saveOk": "Supporter created",
+      "dialogTitle": "New supporter",
+      "colName": "Name",
+      "colLeadership": "Leadership",
+      "colPhone": "Phone",
+      "colCity": "City",
+      "colValidation": "Validation",
+      "colCrm": "CRM",
+      "linked": "Contact",
+      "phoneHint": "With country/area code — syncs to Contacts",
+      "cancel": "Cancel",
+      "save": "Save"
+    }
   }
 }

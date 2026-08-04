@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Crown,
   GitBranch,
+  Handshake,
   LayoutDashboard,
   LogOut,
   MessageSquare,
@@ -22,8 +23,10 @@ import {
   Shield,
   User,
   UserCog,
+  UserRoundCog,
   Users,
   UsersRound,
+  Vote,
   Workflow,
   X,
   Zap,
@@ -147,6 +150,28 @@ const whatsappNavItems: NavItem[] = [
   },
 ];
 
+/** Hierarquia de campanha: Coordenador → Liderança → Apoiador. */
+const campaignNavItems: NavItem[] = [
+  {
+    href: "/campaign/coordinators",
+    labelKey: "coordinators",
+    icon: UserRoundCog,
+    module: ROUTE_MODULE["/campaign/coordinators"],
+  },
+  {
+    href: "/campaign/leaderships",
+    labelKey: "leaderships",
+    icon: Users,
+    module: ROUTE_MODULE["/campaign/leaderships"],
+  },
+  {
+    href: "/campaign/supporters",
+    labelKey: "supporters",
+    icon: Handshake,
+    module: ROUTE_MODULE["/campaign/supporters"],
+  },
+];
+
 const bottomNavItems = [
   { href: "/settings", labelKey: "settings", icon: Settings },
 ];
@@ -185,18 +210,30 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     [canUseModule],
   );
 
+  const visibleCampaignItems = useMemo(
+    () => campaignNavItems.filter((item) => canUseModule(item.module)),
+    [canUseModule],
+  );
+
   const whatsappChildActive = visibleWhatsappItems.some(
     (item) =>
       pathname === item.href ||
       (item.href !== "/dashboard" && pathname.startsWith(item.href)),
   );
 
-  // Keep the WhatsApp group open when a child route is active; otherwise
-  // remember the user's last toggle.
+  const campaignChildActive = visibleCampaignItems.some(
+    (item) => pathname === item.href || pathname.startsWith(item.href),
+  );
+
+  // Mantém o grupo aberto quando um filho está ativo.
   const [whatsappOpen, setWhatsappOpen] = useState(true);
+  const [campaignOpen, setCampaignOpen] = useState(true);
   useEffect(() => {
     if (whatsappChildActive) setWhatsappOpen(true);
   }, [whatsappChildActive]);
+  useEffect(() => {
+    if (campaignChildActive) setCampaignOpen(true);
+  }, [campaignChildActive]);
 
   const showAccountStrip =
     !profileLoading &&
@@ -265,8 +302,60 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          {/* WhatsApp suite — parent group for the existing CRM nav.
-              Future campaign modules will sit above/below this block. */}
+          {/* Campanha — coordenadores, lideranças, apoiadores */}
+          {visibleCampaignItems.length > 0 ? (
+            <div className="mb-2 flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => setCampaignOpen((v) => !v)}
+                aria-expanded={campaignOpen}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                  campaignChildActive
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <Vote className="h-4 w-4 shrink-0" />
+                <span className="flex-1 text-left">{t("groupCampaign")}</span>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 shrink-0 transition-transform",
+                    campaignOpen ? "rotate-0" : "-rotate-90",
+                  )}
+                />
+              </button>
+
+              {campaignOpen ? (
+                <ul className="ml-2 flex flex-col gap-1 border-l border-border pl-2">
+                  {visibleCampaignItems.map((item) => {
+                    const isActive =
+                      pathname === item.href || pathname.startsWith(item.href);
+                    return (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                            isActive
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          <span className="flex-1">
+                            {t(item.labelKey as string)}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+
+          {/* Suite WhatsApp — CRM atual */}
           {visibleWhatsappItems.length > 0 ? (
             <div className="flex flex-col gap-1">
               <button

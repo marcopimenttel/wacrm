@@ -40,6 +40,10 @@
     "menuSettings": "Configurações",
     "menuSignOut": "Sair",
     "groupWhatsApp": "WhatsApp",
+    "groupCampaign": "Campanha",
+    "coordinators": "Coordenadores",
+    "leaderships": "Lideranças",
+    "supporters": "Apoiadores",
     "platform": "Plataforma"
   },
   "Header": {
@@ -1702,7 +1706,16 @@
         "canceled": "Cancelado"
       },
       "trialEnds": "O trial termina em {date}.",
-      "billingSoon": "A cobrança automática (Asaas/Stripe) entra na próxima etapa. Por enquanto o plano é gerenciado pela plataforma.",
+      "checkoutTitle": "Assinar ou renovar via Asaas",
+      "checkoutHint": "Informe CPF/CNPJ e o ciclo. Você será redirecionado à fatura do Asaas para pagar.",
+      "cpfCnpj": "CPF ou CNPJ",
+      "cycle": "Ciclo",
+      "cycleMonthly": "Mensal",
+      "cycleYearly": "Anual",
+      "checkoutCta": "Ir para pagamento",
+      "checkoutError": "Não foi possível iniciar o checkout Asaas",
+      "checkoutFree": "Plano gratuito ativado",
+      "openInvoice": "Abrir fatura Asaas",
       "modulesTitle": "Módulos inclusos",
       "modulesDesc": "Recursos liberados pelo seu plano atual.",
       "modulesEmpty": "Nenhum módulo listado ainda."
@@ -1846,14 +1859,80 @@
   },
   "Platform": {
     "title": "Plataforma",
-    "description": "Visão superadmin dos tenants (contas) nesta instalação.",
+    "description": "Visão superadmin dos tenants (contas) nesta instalação. Altere plano e status diretamente.",
     "loadError": "Falha ao carregar contas",
+    "saveError": "Falha ao atualizar conta",
+    "saveOk": "Conta atualizada",
     "forbiddenTitle": "Acesso restrito",
     "forbiddenDesc": "Seu e-mail não está em PLATFORM_ADMIN_EMAILS. Peça ao operador da plataforma para liberar.",
     "colName": "Conta",
     "colPlan": "Plano",
     "colStatus": "Status",
     "colCreated": "Criada em",
-    "empty": "Nenhuma conta encontrada."
+    "empty": "Nenhuma conta encontrada.",
+    "status": {
+      "trial": "Em trial",
+      "active": "Ativo",
+      "past_due": "Pagamento pendente",
+      "canceled": "Cancelado"
+    }
+  },
+  "Campaign": {
+    "coordinators": {
+      "title": "Coordenadores",
+      "description": "Nível abaixo do tenant. Cada coordenador pode ter várias lideranças.",
+      "add": "Novo coordenador",
+      "empty": "Nenhum coordenador cadastrado.",
+      "loadError": "Falha ao carregar coordenadores",
+      "saveError": "Falha ao salvar coordenador",
+      "saveOk": "Coordenador criado",
+      "dialogTitle": "Novo coordenador",
+      "colName": "Nome",
+      "colPhone": "Telefone",
+      "colEmail": "E-mail",
+      "colStatus": "Status",
+      "cancel": "Cancelar",
+      "save": "Salvar"
+    },
+    "leaderships": {
+      "title": "Lideranças",
+      "description": "Pertencem a um coordenador e concentram os apoiadores.",
+      "add": "Nova liderança",
+      "empty": "Nenhuma liderança cadastrada.",
+      "needCoordinator": "Cadastre pelo menos um coordenador antes de criar lideranças.",
+      "loadError": "Falha ao carregar lideranças",
+      "saveError": "Falha ao salvar liderança",
+      "saveOk": "Liderança criada",
+      "dialogTitle": "Nova liderança",
+      "colName": "Nome",
+      "colCoordinator": "Coordenador",
+      "colPhone": "Telefone",
+      "colCity": "Cidade",
+      "colState": "UF",
+      "colStatus": "Status",
+      "cancel": "Cancelar",
+      "save": "Salvar"
+    },
+    "supporters": {
+      "title": "Apoiadores",
+      "description": "Vinculados a uma liderança. Com telefone, entram também em Contatos (WhatsApp).",
+      "add": "Novo apoiador",
+      "empty": "Nenhum apoiador cadastrado.",
+      "needLeadership": "Cadastre pelo menos uma liderança antes de criar apoiadores.",
+      "loadError": "Falha ao carregar apoiadores",
+      "saveError": "Falha ao salvar apoiador",
+      "saveOk": "Apoiador criado",
+      "dialogTitle": "Novo apoiador",
+      "colName": "Nome",
+      "colLeadership": "Liderança",
+      "colPhone": "Telefone",
+      "colCity": "Cidade",
+      "colValidation": "Validação",
+      "colCrm": "CRM",
+      "linked": "Contato",
+      "phoneHint": "Com DDI/DDD — sincroniza com Contatos",
+      "cancel": "Cancelar",
+      "save": "Salvar"
+    }
   }
 }
