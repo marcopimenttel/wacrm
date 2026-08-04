@@ -11,10 +11,16 @@ import {
   LEADERSHIP_MARITAL_OPTIONS,
   LEADERSHIP_STATUS_OPTIONS,
 } from '@/lib/campaign/constants';
+import {
+  FORM_GRID_CLASS,
+  FORM_SPAN_2,
+  FORM_SPAN_FULL,
+} from '@/lib/campaign/form-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -81,12 +87,14 @@ const empty: LeadershipFormValues = {
 function Field({
   label,
   children,
+  className,
 }: {
   label: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className={cn('space-y-1.5', className)}>
       <Label className="text-foreground">{label}</Label>
       {children}
     </div>
@@ -254,7 +262,8 @@ export function LeadershipFormDialog({
               <h3 className="text-sm font-semibold text-foreground">
                 {t('sectionCoord')}
               </h3>
-              <Field label={t('colCoordinator')}>
+              <div className={FORM_GRID_CLASS}>
+              <Field label={t('colCoordinator')} className={FORM_SPAN_2}>
                 <select
                   className={selectClass}
                   value={String(form.coordinatorId ?? '')}
@@ -267,6 +276,7 @@ export function LeadershipFormDialog({
                   ))}
                 </select>
               </Field>
+              </div>
             </section>
           ) : null}
 
@@ -274,7 +284,7 @@ export function LeadershipFormDialog({
             <h3 className="text-sm font-semibold text-foreground">
               {t('sectionPersonal')}
             </h3>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className={FORM_GRID_CLASS}>
               <Field label={t('colName')}>
                 <Input
                   className="bg-background"
@@ -337,7 +347,7 @@ export function LeadershipFormDialog({
                   ))}
                 </select>
               </Field>
-              <Field label={t('fieldMother')}>
+              <Field label={t('fieldMother')} className={FORM_SPAN_2}>
                 <Input
                   className="bg-background"
                   value={String(form.mother_name ?? '')}
@@ -352,7 +362,7 @@ export function LeadershipFormDialog({
             <h3 className="text-sm font-semibold text-foreground">
               {t('sectionElectoral')}
             </h3>
-            <div className="grid gap-3 sm:grid-cols-3">
+            <div className={FORM_GRID_CLASS}>
               <Field label={t('fieldVoterTitle')}>
                 <Input
                   className="bg-background"
@@ -384,7 +394,7 @@ export function LeadershipFormDialog({
             <h3 className="text-sm font-semibold text-foreground">
               {t('sectionContact')}
             </h3>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className={FORM_GRID_CLASS}>
               <Field label={t('colPhone')}>
                 <Input
                   className="bg-background"
@@ -428,7 +438,7 @@ export function LeadershipFormDialog({
             <h3 className="text-sm font-semibold text-foreground">
               {t('sectionAddress')}
             </h3>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className={FORM_GRID_CLASS}>
               <Field label="CEP">
                 <Input
                   className="bg-background"
@@ -443,18 +453,18 @@ export function LeadershipFormDialog({
                   onChange={(e) => set('address_number', e.target.value)}
                 />
               </Field>
-              <Field label={t('fieldAddress')}>
-                <Input
-                  className="bg-background"
-                  value={String(form.address ?? '')}
-                  onChange={(e) => set('address', e.target.value)}
-                />
-              </Field>
               <Field label={t('fieldNeighborhood')}>
                 <Input
                   className="bg-background"
                   value={String(form.neighborhood ?? '')}
                   onChange={(e) => set('neighborhood', e.target.value)}
+                />
+              </Field>
+              <Field label={t('fieldAddress')} className={FORM_SPAN_2}>
+                <Input
+                  className="bg-background"
+                  value={String(form.address ?? '')}
+                  onChange={(e) => set('address', e.target.value)}
                 />
               </Field>
               <Field label={t('colCity')}>
@@ -501,7 +511,7 @@ export function LeadershipFormDialog({
                   />
                 )}
               </Field>
-              <Field label={t('fieldComplement')}>
+              <Field label={t('fieldComplement')} className={FORM_SPAN_2}>
                 <Input
                   className="bg-background"
                   value={String(form.complement ?? '')}
@@ -517,7 +527,7 @@ export function LeadershipFormDialog({
                 <h3 className="text-sm font-semibold text-foreground">
                   {t('sectionCampaign')}
                 </h3>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className={FORM_GRID_CLASS}>
                   <Field label={t('colStatus')}>
                     <select
                       className={selectClass}
@@ -636,7 +646,7 @@ export function LeadershipFormDialog({
                     </div>
                   </div>
                 ) : null}
-                <Field label={t('fieldInternalNotes')}>
+                <Field label={t('fieldInternalNotes')} className={FORM_SPAN_FULL}>
                   <Textarea
                     className="bg-background"
                     rows={3}
@@ -651,7 +661,7 @@ export function LeadershipFormDialog({
                   {t('sectionAccess')}
                 </h3>
                 <p className="text-xs text-muted-foreground">{t('accessHint')}</p>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className={FORM_GRID_CLASS}>
                   <Field label={t('accessEmail')}>
                     <Input
                       type="email"

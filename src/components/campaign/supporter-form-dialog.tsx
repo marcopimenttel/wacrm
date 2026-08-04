@@ -12,6 +12,12 @@ import {
   SUPPORTER_CONQUISTA_OPTIONS,
   SUPPORTER_MARITAL_OPTIONS,
 } from '@/lib/campaign/constants';
+import {
+  FORM_GRID_CLASS,
+  FORM_SPAN_2,
+  FORM_SPAN_FULL,
+} from '@/lib/campaign/form-layout';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -153,23 +159,25 @@ export function SupporterFormDialog({
         </DialogHeader>
         <div className="space-y-6 overflow-y-auto px-6 py-4">
           {!lockedLeadershipId ? (
-            <div className="space-y-1.5">
-              <Label>{t('colLeadership')}</Label>
-              <select
-                className={selectClass}
-                value={leadershipId}
-                onChange={(e) => setLeadershipId(e.target.value)}
-              >
-                {leaderships.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
+            <div className={FORM_GRID_CLASS}>
+              <div className={cn('space-y-1.5', FORM_SPAN_2)}>
+                <Label>{t('colLeadership')}</Label>
+                <select
+                  className={selectClass}
+                  value={leadershipId}
+                  onChange={(e) => setLeadershipId(e.target.value)}
+                >
+                  {leaderships.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           ) : null}
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className={FORM_GRID_CLASS}>
             <div className="space-y-1.5">
               <Label>{t('colName')}</Label>
               <Input className="bg-background" value={name} onChange={(e) => setName(e.target.value)} />
@@ -218,7 +226,7 @@ export function SupporterFormDialog({
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className={FORM_GRID_CLASS}>
             <div className="space-y-1.5">
               <Label>CEP</Label>
               <Input className="bg-background" value={cep} onChange={(e) => setCep(e.target.value)} />
@@ -227,26 +235,13 @@ export function SupporterFormDialog({
               <Label>{t('fieldNumber')}</Label>
               <Input className="bg-background" value={number} onChange={(e) => setNumber(e.target.value)} />
             </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>{t('fieldAddress')}</Label>
-              <Input className="bg-background" value={address} onChange={(e) => setAddress(e.target.value)} />
-            </div>
             <div className="space-y-1.5">
               <Label>{t('fieldNeighborhood')}</Label>
               <Input className="bg-background" value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} />
             </div>
-            <div className="space-y-1.5">
-              <Label>{t('fieldCityZone')}</Label>
-              {zones.length ? (
-                <select className={selectClass} value={cityZone} onChange={(e) => setCityZone(e.target.value)}>
-                  <option value="">—</option>
-                  {zones.map((z) => (
-                    <option key={z.id} value={z.name}>{z.name}</option>
-                  ))}
-                </select>
-              ) : (
-                <Input className="bg-background" value={cityZone} onChange={(e) => setCityZone(e.target.value)} placeholder={t('cityZoneHint')} />
-              )}
+            <div className={cn('space-y-1.5', FORM_SPAN_2)}>
+              <Label>{t('fieldAddress')}</Label>
+              <Input className="bg-background" value={address} onChange={(e) => setAddress(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label>{t('colCity')}</Label>
@@ -261,11 +256,24 @@ export function SupporterFormDialog({
                 ))}
               </select>
             </div>
-            <div className="space-y-1.5 sm:col-span-2">
+            <div className="space-y-1.5">
+              <Label>{t('fieldCityZone')}</Label>
+              {zones.length ? (
+                <select className={selectClass} value={cityZone} onChange={(e) => setCityZone(e.target.value)}>
+                  <option value="">—</option>
+                  {zones.map((z) => (
+                    <option key={z.id} value={z.name}>{z.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <Input className="bg-background" value={cityZone} onChange={(e) => setCityZone(e.target.value)} placeholder={t('cityZoneHint')} />
+              )}
+            </div>
+            <div className={cn('space-y-1.5', FORM_SPAN_2)}>
               <Label>{t('fieldComplement')}</Label>
               <Input className="bg-background" value={complement} onChange={(e) => setComplement(e.target.value)} />
             </div>
-            <div className="space-y-1.5 sm:col-span-2">
+            <div className={cn('space-y-1.5', FORM_SPAN_FULL)}>
               <Label>{t('fieldNotes')}</Label>
               <Textarea className="bg-background" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
@@ -290,7 +298,7 @@ export function SupporterFormDialog({
               </Button>
             </div>
             {family.map((row, idx) => (
-              <div key={idx} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-2">
+              <div key={idx} className={cn(FORM_GRID_CLASS, 'rounded-lg border border-border p-3')}>
                 <Input
                   placeholder={t('colName')}
                   className="bg-background"
@@ -324,7 +332,7 @@ export function SupporterFormDialog({
                     setFamily(next);
                   }}
                 />
-                <div className="flex gap-2">
+                <div className={cn('flex gap-2', FORM_SPAN_2)}>
                   <Input
                     placeholder={t('colPhone')}
                     className="bg-background"
