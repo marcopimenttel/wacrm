@@ -1,16 +1,14 @@
 -- ============================================================
--- 037_saas_foundation.sql — Commercial SaaS spine (plans + modules)
+-- 037_saas_foundation.sql — Espinha SaaS comercial (planos + módulos)
 --
--- Adds the commercial multi-tenant foundation without changing the
--- existing CRM behaviour:
---   * plans + plan_modules catalogue
+-- Base comercial multi-tenant sem alterar o CRM existente:
+--   * catálogo plans + plan_modules
 --   * accounts.subscription_status / plan_id / trial_ends_at
---   * default "pro" plan with every WhatsApp module enabled
---   * new signups start on trial (14 days) on the pro catalogue
+--   * plano "pro" padrão com todos os módulos WhatsApp ligados
+--   * novos cadastros começam em trial (14 dias)
 --
--- Future political modules (leaderships, supporters, demands, …)
--- are seeded as keys on plans but NOT enabled on the default plan
--- yet — they unlock when those features ship.
+-- Módulos políticos futuros (lideranças, apoiadores, demandas, …)
+-- ficam documentados, mas NÃO entram em plan_modules até existirem.
 -- ============================================================
 
 -- ------------------------------------------------------------
@@ -29,7 +27,7 @@ BEGIN
 END $$;
 
 -- ------------------------------------------------------------
--- PLANS
+-- PLANOS
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS plans (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -59,7 +57,7 @@ CREATE POLICY plans_select_service ON plans
   USING (TRUE);
 
 -- ------------------------------------------------------------
--- PLAN MODULES
+-- MÓDULOS POR PLANO
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS plan_modules (
   plan_id UUID NOT NULL REFERENCES plans(id) ON DELETE CASCADE,
@@ -87,7 +85,7 @@ CREATE POLICY plan_modules_select_service ON plan_modules
   USING (TRUE);
 
 -- ------------------------------------------------------------
--- ACCOUNT SaaS COLUMNS
+-- COLUNAS SaaS EM ACCOUNTS
 -- ------------------------------------------------------------
 ALTER TABLE accounts
   ADD COLUMN IF NOT EXISTS plan_id UUID REFERENCES plans(id) ON DELETE SET NULL;
@@ -107,24 +105,22 @@ CREATE INDEX IF NOT EXISTS idx_accounts_subscription_status
   ON accounts(subscription_status);
 
 -- ------------------------------------------------------------
--- SEED PLANS + MODULES
+-- SEED: PLANOS + MÓDULOS
 -- ------------------------------------------------------------
--- WhatsApp group (current product surface)
--- Future political modules (flags only for now)
 INSERT INTO plans (id, key, name, description, sort_order)
 VALUES
   (
     'a0000000-0000-4000-8000-000000000001',
     'trial',
     'Trial',
-    '14-day trial with WhatsApp CRM modules enabled.',
+    'Trial de 14 dias com módulos do CRM WhatsApp.',
     10
   ),
   (
     'a0000000-0000-4000-8000-000000000002',
     'pro',
     'Pro',
-    'Full WhatsApp CRM. Political modules unlock as they ship.',
+    'CRM WhatsApp completo. Módulos políticos liberam conforme forem lançados.',
     20
   )
 ON CONFLICT (key) DO UPDATE
@@ -135,7 +131,7 @@ SET
   is_active = TRUE,
   updated_at = NOW();
 
--- Module keys enabled on trial + pro today
+-- Chaves de módulo ativas hoje em trial + pro
 WITH mods AS (
   SELECT unnest(ARRAY[
     'whatsapp',
@@ -159,9 +155,7 @@ FROM plan_ids p
 CROSS JOIN mods m
 ON CONFLICT DO NOTHING;
 
--- Placeholder political module keys on pro only (disabled until built:
--- we intentionally do NOT insert them into plan_modules yet).
--- Documented keys for the product roadmap:
+-- Chaves políticas (roadmap) — ainda NÃO inseridas em plan_modules:
 --   campaign.leaderships
 --   campaign.supporters
 --   campaign.demands
@@ -171,7 +165,7 @@ ON CONFLICT DO NOTHING;
 --   campaign.finance
 --   campaign.tse
 
--- Backfill existing accounts onto pro + active (they already use the app).
+-- Contas existentes → pro + active (já usam o app).
 UPDATE accounts
 SET
   plan_id = COALESCE(plan_id, 'a0000000-0000-4000-8000-000000000002'),
@@ -182,7 +176,7 @@ SET
 WHERE plan_id IS NULL;
 
 -- ------------------------------------------------------------
--- SIGNUP: trial bootstrap
+-- SIGNUP: bootstrap em trial
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -223,7 +217,7 @@ BEGIN
 
   RETURN NEW;
 EXCEPTION WHEN OTHERS THEN
-  RAISE WARNING 'Failed to bootstrap account/profile for user %: %', NEW.id, SQLERRM;
+  RAISE WARNING 'Falha ao criar account/profile do usuário %: %', NEW.id, SQLERRM;
   RETURN NEW;
 END;
 $$;

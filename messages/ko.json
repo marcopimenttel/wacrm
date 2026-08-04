@@ -39,7 +39,8 @@
     "menuProfile": "프로필",
     "menuSettings": "설정",
     "menuSignOut": "로그아웃",
-    "groupWhatsApp": "WhatsApp"
+    "groupWhatsApp": "WhatsApp",
+    "platform": "플랫폼"
   },
   "Header": {
     "dashboard": "대시보드",
@@ -1499,7 +1500,8 @@
       "fields": "필드 & 태그",
       "deals": "딜 & 통화",
       "members": "팀원",
-      "api": "API 키"
+      "api": "API 키",
+      "plan": "플랜"
     },
     "groups": {
       "account": "계정",
@@ -1685,6 +1687,25 @@
       "reindex": "재색인",
       "reindexTooltip": "모든 문서를 다시 임베딩합니다 (예: 임베딩 키 추가 후)",
       "loading": "불러오는 중…"
+    },
+    "plan": {
+      "title": "Plan & billing",
+      "description": "See your account plan, subscription status, and enabled modules.",
+      "loading": "Loading plan…",
+      "planUnknown": "Plan not set",
+      "planKey": "Key: {key}",
+      "statusLabel": "Status:",
+      "status": {
+        "trial": "Trial",
+        "active": "Active",
+        "past_due": "Past due",
+        "canceled": "Canceled"
+      },
+      "trialEnds": "Trial ends on {date}.",
+      "billingSoon": "Automated billing (Asaas/Stripe) ships next. For now the plan is managed by the platform.",
+      "modulesTitle": "Included modules",
+      "modulesDesc": "Features unlocked by your current plan.",
+      "modulesEmpty": "No modules listed yet."
     }
   },
   "SignupPage": {
@@ -1822,5 +1843,17 @@
     "modelStats": "{tokens} tok · {calls} {calls, plural, =1 {call} other {calls}}",
     "truncatedHint": "Showing a partial window — usage is high enough that only the most recent records are summarized here.",
     "loadFailed": "Failed to load usage"
+  },
+  "Platform": {
+    "title": "Platform",
+    "description": "Superadmin view of tenants (accounts) on this install.",
+    "loadError": "Failed to load accounts",
+    "forbiddenTitle": "Restricted access",
+    "forbiddenDesc": "Your email is not in PLATFORM_ADMIN_EMAILS.",
+    "colName": "Account",
+    "colPlan": "Plan",
+    "colStatus": "Status",
+    "colCreated": "Created",
+    "empty": "No accounts found."
   }
 }

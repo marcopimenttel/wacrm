@@ -18,19 +18,14 @@ import { FieldsAndTagsPanel } from '@/components/settings/fields-and-tags-panel'
 import { DealsSettings } from '@/components/settings/deals-settings';
 import { MembersTab } from '@/components/settings/members-tab';
 import { ApiKeysSettings } from '@/components/settings/api-keys-settings';
+import { PlanSettings } from '@/components/settings/plan-settings';
 import {
   resolveSection,
   type SettingsSection,
 } from '@/components/settings/settings-sections';
 
-// `useSearchParams` opts this page out of static prerendering unless it
-// sits under a Suspense boundary. Without one, the production build hits
-// the "missing Suspense with CSR bailout" error and the whole page bails
-// to client-side rendering — shipping a settings screen whose rail never
-// wires up its click handlers. You land on the section the URL carried
-// (the account-menu Settings link points at `?tab=whatsapp`) and can't
-// navigate away. Mirror the login/signup split: a thin wrapper supplies
-// the boundary; the inner component reads the query string.
+// `useSearchParams` exige Suspense; sem isso o build de produção quebra
+// a rail de configurações. Wrapper fino + componente interno.
 export default function SettingsPage() {
   return (
     <Suspense fallback={null}>
@@ -42,14 +37,11 @@ export default function SettingsPage() {
 function SettingsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { defaultCurrency } = useAuth();
+  const { defaultCurrency, account } = useAuth();
   const { mode } = useTheme();
   const t = useTranslations('Settings');
 
-  // The URL (`?tab=`) is the single source of truth for the active
-  // section — deep-linkable, and it keeps the existing links in the
-  // app sidebar/header working. Legacy tab values (tags, custom-fields)
-  // resolve onto their new home; unknown/empty → the Overview landing.
+  // `?tab=` é a fonte da verdade da seção ativa.
   const section = resolveSection(searchParams.get('tab'));
 
   const go = (next: SettingsSection) => {
@@ -58,15 +50,13 @@ function SettingsPageInner() {
     router.replace(`/settings?${params.toString()}`, { scroll: false });
   };
 
-  // Cheap, fetch-free rail hints. The Overview landing carries the
-  // full live status/counts; the rail just surfaces the two that are
-  // already in context.
   const hints: Partial<Record<SettingsSection, ReactNode>> = useMemo(
     () => ({
       appearance: mode.charAt(0).toUpperCase() + mode.slice(1),
       deals: defaultCurrency,
+      plan: account?.plan_name ?? undefined,
     }),
-    [mode, defaultCurrency],
+    [mode, defaultCurrency, account?.plan_name],
   );
 
   const panel: Record<SettingsSection, ReactNode> = {
@@ -74,6 +64,7 @@ function SettingsPageInner() {
     profile: <ProfileForm />,
     security: <SecurityPanel />,
     appearance: <AppearancePanel />,
+    plan: <PlanSettings />,
     whatsapp: <WhatsAppConfig />,
     templates: <TemplateManager />,
     'quick-replies': <QuickRepliesManager />,

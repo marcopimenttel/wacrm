@@ -1,5 +1,6 @@
 import {
   Coins,
+  CreditCard,
   FileText,
   KeyRound,
   LayoutGrid,
@@ -14,18 +15,17 @@ import {
 } from 'lucide-react';
 
 /**
- * Settings information architecture for the redesigned page.
+ * Arquitetura da página de Configurações.
  *
- * The flat tab strip became a grouped left rail with a new Overview
- * landing. The URL query param stays `?tab=` (deep-linkable, and it
- * keeps the existing links in sidebar.tsx / header.tsx working) — we
- * just map the old values onto the new sections.
+ * A URL continua com `?tab=` (deep-link). Valores antigos de tab
+ * são mapeados para as seções novas.
  */
 export const SETTINGS_SECTIONS = [
   'overview',
   'profile',
   'security',
   'appearance',
+  'plan',
   'whatsapp',
   'templates',
   'quick-replies',
@@ -39,7 +39,7 @@ export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
 export const DEFAULT_SECTION: SettingsSection = 'overview';
 
-/** Rail grouping. `adminOnly` items are hidden for non-admins. */
+/** Agrupamento da rail. */
 export interface SectionMeta {
   id: SettingsSection;
   label: string;
@@ -52,6 +52,7 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
   profile: { id: 'profile', label: 'Your profile', icon: User, group: 'account' },
   security: { id: 'security', label: 'Login & security', icon: Shield, group: 'account' },
   appearance: { id: 'appearance', label: 'Appearance', icon: Palette, group: 'account' },
+  plan: { id: 'plan', label: 'Plan', icon: CreditCard, group: 'account' },
   whatsapp: { id: 'whatsapp', label: 'WhatsApp', icon: PlugZap, group: 'workspace' },
   templates: { id: 'templates', label: 'Templates', icon: FileText, group: 'workspace' },
   'quick-replies': { id: 'quick-replies', label: 'Quick replies', icon: Zap, group: 'workspace' },
@@ -72,10 +73,8 @@ function isSection(value: string | null): value is SettingsSection {
 }
 
 /**
- * Resolve a raw `?tab=` value to a section. Legacy tabs from the old
- * flat layout collapse onto their new home (Tags + Custom fields → the
- * merged "Fields & tags" section). Anything unknown falls back to the
- * Overview landing.
+ * Resolve `?tab=` para uma seção. Tabs legadas caem na seção nova.
+ * Desconhecido → Overview.
  */
 export function resolveSection(raw: string | null): SettingsSection {
   if (raw === 'tags' || raw === 'custom-fields') return 'fields';

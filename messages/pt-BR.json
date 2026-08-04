@@ -39,7 +39,8 @@
     "menuProfile": "Perfil",
     "menuSettings": "Configurações",
     "menuSignOut": "Sair",
-    "groupWhatsApp": "WhatsApp"
+    "groupWhatsApp": "WhatsApp",
+    "platform": "Plataforma"
   },
   "Header": {
     "dashboard": "Painel",
@@ -1499,7 +1500,8 @@
       "fields": "Campos e etiquetas",
       "deals": "Negócios e moeda",
       "members": "Membros da equipe",
-      "api": "Chaves de API"
+      "api": "Chaves de API",
+      "plan": "Plano"
     },
     "groups": {
       "account": "Conta",
@@ -1685,6 +1687,25 @@
       "reindex": "Reindexar",
       "reindexTooltip": "Re-gerar embeddings de todos os documentos (ex.: após adicionar uma chave de embeddings)",
       "loading": "Carregando…"
+    },
+    "plan": {
+      "title": "Plano e assinatura",
+      "description": "Veja o plano da sua conta, o status da assinatura e os módulos liberados.",
+      "loading": "Carregando plano…",
+      "planUnknown": "Plano não definido",
+      "planKey": "Código: {key}",
+      "statusLabel": "Status:",
+      "status": {
+        "trial": "Em trial",
+        "active": "Ativo",
+        "past_due": "Pagamento pendente",
+        "canceled": "Cancelado"
+      },
+      "trialEnds": "O trial termina em {date}.",
+      "billingSoon": "A cobrança automática (Asaas/Stripe) entra na próxima etapa. Por enquanto o plano é gerenciado pela plataforma.",
+      "modulesTitle": "Módulos inclusos",
+      "modulesDesc": "Recursos liberados pelo seu plano atual.",
+      "modulesEmpty": "Nenhum módulo listado ainda."
     }
   },
   "SignupPage": {
@@ -1822,5 +1843,17 @@
     "modelStats": "{tokens} tok · {calls} {calls, plural, =1 {chamada} other {chamadas}}",
     "truncatedHint": "Exibindo uma janela parcial — o uso é alto o suficiente para que apenas os registros mais recentes sejam resumidos aqui.",
     "loadFailed": "Falha ao carregar uso"
+  },
+  "Platform": {
+    "title": "Plataforma",
+    "description": "Visão superadmin dos tenants (contas) nesta instalação.",
+    "loadError": "Falha ao carregar contas",
+    "forbiddenTitle": "Acesso restrito",
+    "forbiddenDesc": "Seu e-mail não está em PLATFORM_ADMIN_EMAILS. Peça ao operador da plataforma para liberar.",
+    "colName": "Conta",
+    "colPlan": "Plano",
+    "colStatus": "Status",
+    "colCreated": "Criada em",
+    "empty": "Nenhuma conta encontrada."
   }
 }

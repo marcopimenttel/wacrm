@@ -1,9 +1,9 @@
 /**
- * SaaS module catalogue + helpers.
+ * Catálogo de módulos SaaS + helpers.
  *
- * Module keys mirror `plan_modules.module_key` (migration 037).
- * The WhatsApp group is both a parent (`whatsapp`) and per-route
- * children so we can sell the suite or slice it later.
+ * As chaves espelham `plan_modules.module_key` (migration 037).
+ * O grupo WhatsApp tem pai (`whatsapp`) e filhos por rota, para
+ * vender o pacote inteiro ou fatiar no futuro.
  */
 
 export const WHATSAPP_MODULES = [
@@ -19,7 +19,7 @@ export const WHATSAPP_MODULES = [
   "whatsapp.agents",
 ] as const;
 
-/** Roadmap keys — not enabled on default plans until features ship. */
+/** Chaves de roadmap — só entram no plano quando o módulo existir. */
 export const CAMPAIGN_MODULES = [
   "campaign.leaderships",
   "campaign.supporters",
@@ -35,7 +35,7 @@ export type WhatsappModule = (typeof WHATSAPP_MODULES)[number];
 export type CampaignModule = (typeof CAMPAIGN_MODULES)[number];
 export type ModuleKey = WhatsappModule | CampaignModule | (string & {});
 
-/** Map dashboard routes → required module key. */
+/** Rotas do dashboard → módulo obrigatório. */
 export const ROUTE_MODULE: Record<string, ModuleKey> = {
   "/dashboard": "whatsapp.dashboard",
   "/inbox": "whatsapp.inbox",
@@ -46,6 +46,28 @@ export const ROUTE_MODULE: Record<string, ModuleKey> = {
   "/automations": "whatsapp.automations",
   "/flows": "whatsapp.flows",
   "/agents": "whatsapp.agents",
+};
+
+/** Rótulos amigáveis (pt-BR) para exibir módulos na UI. */
+export const MODULE_LABEL_PT: Record<string, string> = {
+  whatsapp: "Suite WhatsApp",
+  "whatsapp.dashboard": "Painel WhatsApp",
+  "whatsapp.inbox": "Caixa de entrada",
+  "whatsapp.notifications": "Notificações",
+  "whatsapp.contacts": "Contatos",
+  "whatsapp.pipelines": "Funis",
+  "whatsapp.broadcasts": "Disparos",
+  "whatsapp.automations": "Automações",
+  "whatsapp.flows": "Fluxos",
+  "whatsapp.agents": "Agentes de IA",
+  "campaign.leaderships": "Lideranças",
+  "campaign.supporters": "Apoiadores",
+  "campaign.demands": "Demandas",
+  "campaign.goals": "Metas",
+  "campaign.agenda": "Agenda",
+  "campaign.stock": "Estoque",
+  "campaign.finance": "Financeiro",
+  "campaign.tse": "Resultados TSE",
 };
 
 export type SubscriptionStatus =
@@ -66,11 +88,10 @@ export function isSubscriptionStatus(
 }
 
 /**
- * Whether the account may use a module.
- * - Empty / unknown module list → allow (fail-open during rollout).
- * - Parent `whatsapp` grants every `whatsapp.*` child.
- * - past_due / canceled still see modules but billing UI can warn;
- *   hard lock comes later with the checkout flow.
+ * Indica se a conta pode usar o módulo.
+ * - Lista vazia/ausente → libera (fail-open na transição).
+ * - Pai `whatsapp` libera todos os filhos `whatsapp.*`.
+ * - past_due / canceled ainda veem módulos; o bloqueio duro vem com o checkout.
  */
 export function canUseModule(
   enabledModules: readonly string[] | null | undefined,

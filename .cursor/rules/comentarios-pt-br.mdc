@@ -1,0 +1,15 @@
+---
+description: Comentários e docs de código sempre em português (Brasil)
+alwaysApply: true
+---
+
+# Idioma dos comentários — prioridade máxima
+
+Em **todo** arquivo novo ou editado neste repositório:
+
+1. Comentários de código (`//`, `/* */`, JSDoc, docblocks) devem estar em **português do Brasil (pt-BR)**.
+2. Comentários e cabeçalhos de arquivos **`.sql`** (migrations) devem estar em **pt-BR**.
+3. Mensagens de commit podem permanecer em inglês se o histórico do repo for em inglês; preferir pt-BR se o usuário pedir.
+4. Strings de UI já usam i18n (`messages/pt-BR.json`) — não misturar inglês em labels novas.
+5. Nomes de variáveis, funções, tabelas e chaves de API continuam em inglês (código/identifiers).
+6. Ao editar arquivo com comentários antigos em inglês na região alterada, **traduza** esses comentários para pt-BR na mesma mudança.

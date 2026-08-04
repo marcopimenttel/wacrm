@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
 import { useUnreadNotifications } from "@/hooks/use-unread-notifications";
 import {
+  Building2,
   Bell,
   Bot,
   ChevronDown,
@@ -30,6 +31,7 @@ import {
 import type { AccountRole } from "@/lib/auth/roles";
 import type { ModuleKey } from "@/lib/saas/modules";
 import { ROUTE_MODULE } from "@/lib/saas/modules";
+import { isPlatformAdminEmail } from "@/lib/saas/platform-admin";
 
 // Per-role chip metadata used in the sidebar's account strip + the
 // Members tab roster. Keeping this near both consumers in a single
@@ -149,6 +151,12 @@ const bottomNavItems = [
   { href: "/settings", labelKey: "settings", icon: Settings },
 ];
 
+const platformNavItem = {
+  href: "/platform",
+  labelKey: "platform",
+  icon: Building2,
+};
+
 interface SidebarProps {
   /** Controlled on mobile by the Header's hamburger button. Ignored on lg+. */
   open?: boolean;
@@ -170,6 +178,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
   } = useAuth();
   const totalUnread = useTotalUnread();
   const unreadNotifications = useUnreadNotifications();
+  const showPlatform = isPlatformAdminEmail(profile?.email);
 
   const visibleWhatsappItems = useMemo(
     () => whatsappNavItems.filter((item) => canUseModule(item.module)),
@@ -373,6 +382,22 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 </li>
               );
             })}
+            {showPlatform ? (
+              <li>
+                <Link
+                  href={platformNavItem.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
+                    pathname.startsWith(platformNavItem.href)
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  <platformNavItem.icon className="h-4 w-4" />
+                  {t(platformNavItem.labelKey)}
+                </Link>
+              </li>
+            ) : null}
           </ul>
         </nav>
 

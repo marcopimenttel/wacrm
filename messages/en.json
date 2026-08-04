@@ -39,7 +39,8 @@
     "menuProfile": "Profile",
     "menuSettings": "Settings",
     "menuSignOut": "Sign out",
-    "groupWhatsApp": "WhatsApp"
+    "groupWhatsApp": "WhatsApp",
+    "platform": "Platform"
   },
   "Header": {
     "dashboard": "Dashboard",
@@ -1499,7 +1500,8 @@
       "fields": "Fields & tags",
       "deals": "Deals & currency",
       "members": "Team members",
-      "api": "API keys"
+      "api": "API keys",
+      "plan": "Plan"
     },
     "groups": {
       "account": "Account",
@@ -1685,6 +1687,25 @@
       "reindex": "Reindex",
       "reindexTooltip": "Re-embed all documents (e.g. after adding an embeddings key)",
       "loading": "Loading…"
+    },
+    "plan": {
+      "title": "Plan & billing",
+      "description": "See your account plan, subscription status, and enabled modules.",
+      "loading": "Loading plan…",
+      "planUnknown": "Plan not set",
+      "planKey": "Key: {key}",
+      "statusLabel": "Status:",
+      "status": {
+        "trial": "Trial",
+        "active": "Active",
+        "past_due": "Past due",
+        "canceled": "Canceled"
+      },
+      "trialEnds": "Trial ends on {date}.",
+      "billingSoon": "Automated billing (Asaas/Stripe) ships next. For now the plan is managed by the platform.",
+      "modulesTitle": "Included modules",
+      "modulesDesc": "Features unlocked by your current plan.",
+      "modulesEmpty": "No modules listed yet."
     }
   },
   "SignupPage": {
@@ -1822,5 +1843,17 @@
     "modelStats": "{tokens} tok · {calls} {calls, plural, =1 {call} other {calls}}",
     "truncatedHint": "Showing a partial window — usage is high enough that only the most recent records are summarized here.",
     "loadFailed": "Failed to load usage"
+  },
+  "Platform": {
+    "title": "Platform",
+    "description": "Superadmin view of tenants (accounts) on this install.",
+    "loadError": "Failed to load accounts",
+    "forbiddenTitle": "Restricted access",
+    "forbiddenDesc": "Your email is not in PLATFORM_ADMIN_EMAILS.",
+    "colName": "Account",
+    "colPlan": "Plan",
+    "colStatus": "Status",
+    "colCreated": "Created",
+    "empty": "No accounts found."
   }
 }
