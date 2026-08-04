@@ -107,7 +107,13 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
         />
       </head>
-      <body className="min-h-full bg-background text-foreground font-sans">
+      <body
+        className="min-h-full bg-background text-foreground font-sans"
+        // Extensões do browser (ex.: ColorZilla) injetam atributos no
+        // <body> antes da hidratação (cz-shortcut-listen, etc.) e
+        // geram falso positivo de mismatch. Só silencia este elemento.
+        suppressHydrationWarning
+      >
         <NextIntlClientProvider messages={messages} locale={locale}>
           <ThemeProvider>
             {children}
