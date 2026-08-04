@@ -1,0 +1,14 @@
+---
+description: Sempre fazer commit e push após mudanças (deploy Coolify/Hostinger)
+alwaysApply: true
+---
+
+# Commit e push automáticos
+
+Após concluir qualquer alteração de código neste repositório:
+
+1. Faça **commit** das mudanças relevantes (nunca inclua `.env.local`, secrets, senhas ou chaves).
+2. Faça **push** para `origin` na branch atual (necessário para deploy via Coolify na VPS Hostinger).
+3. Use mensagens de commit concisas, no estilo do repositório, focadas no "porquê".
+4. Se o push falhar por autenticação/rede, informe o usuário com o erro e o comando para retry.
+5. Não force-push em `main`/`master` sem pedido explícito.
