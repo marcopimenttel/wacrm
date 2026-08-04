@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Building2, Loader2, Shield } from 'lucide-react';
+import { Building2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 
 import { useAuth } from '@/hooks/use-auth';
+import { isPlatformAdminEmail } from '@/lib/saas/platform-admin';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -40,7 +41,6 @@ export default function PlatformPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const [accounts, setAccounts] = useState<PlatformAccount[] | null>(null);
-  const [forbidden, setForbidden] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -49,8 +49,7 @@ export default function PlatformPage() {
     try {
       const res = await fetch('/api/platform/accounts');
       if (res.status === 403) {
-        setForbidden(true);
-        setAccounts([]);
+        router.replace('/dashboard');
         return;
       }
       if (!res.ok) {
@@ -60,18 +59,22 @@ export default function PlatformPage() {
       }
       const body = (await res.json()) as { accounts: PlatformAccount[] };
       setAccounts(body.accounts);
-      setForbidden(false);
     } catch {
       toast.error(t('loadError'));
     } finally {
       setFetching(false);
     }
-  }, [t]);
+  }, [t, router]);
 
   useEffect(() => {
     if (loading) return;
     if (!user) {
       router.replace('/login');
+      return;
+    }
+    // Isolamento igual O Candidato: tenant nunca vê o painel de plataforma.
+    if (!isPlatformAdminEmail(user.email)) {
+      router.replace('/dashboard');
       return;
     }
     load();
@@ -106,18 +109,6 @@ export default function PlatformPage() {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (forbidden) {
-    return (
-      <div className="flex h-64 flex-col items-center justify-center gap-2">
-        <Shield className="h-8 w-8 text-muted-foreground" />
-        <p className="text-sm font-medium text-foreground">{t('forbiddenTitle')}</p>
-        <p className="max-w-md text-center text-sm text-muted-foreground">
-          {t('forbiddenDesc')}
-        </p>
       </div>
     );
   }

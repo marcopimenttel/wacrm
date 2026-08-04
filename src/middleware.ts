@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { isPlatformAdminEmail } from '@/lib/saas/platform-admin'
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
@@ -87,6 +89,23 @@ export async function middleware(request: NextRequest) {
   if (!user && protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    return withRefreshedCookies(NextResponse.redirect(url))
+  }
+
+  // Painel / API de plataforma: só e-mails em PLATFORM_ADMIN_EMAILS
+  // (tenants nunca acessam — igual O Candidato is_superuser).
+  const isPlatformPath =
+    request.nextUrl.pathname.startsWith('/platform') ||
+    request.nextUrl.pathname.startsWith('/api/platform')
+  if (user && isPlatformPath && !isPlatformAdminEmail(user.email)) {
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return withRefreshedCookies(
+        NextResponse.json({ error: 'Forbidden' }, { status: 403 }),
+      )
+    }
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    url.search = ''
     return withRefreshedCookies(NextResponse.redirect(url))
   }
 

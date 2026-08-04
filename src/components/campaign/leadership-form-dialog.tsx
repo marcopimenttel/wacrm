@@ -16,6 +16,7 @@ import {
   FORM_SPAN_2,
   FORM_SPAN_FULL,
 } from '@/lib/campaign/form-layout';
+import { CepInput } from '@/components/brazil/cep-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -440,10 +441,16 @@ export function LeadershipFormDialog({
             </h3>
             <div className={FORM_GRID_CLASS}>
               <Field label="CEP">
-                <Input
-                  className="bg-background"
+                <CepInput
                   value={String(form.cep ?? '')}
-                  onChange={(e) => set('cep', e.target.value)}
+                  onChange={(masked) => set('cep', masked)}
+                  onResolved={(addr) => {
+                    set('address', addr.address);
+                    set('neighborhood', addr.neighborhood);
+                    set('city', addr.city);
+                    set('state', addr.state);
+                    if (addr.complement) set('complement', addr.complement);
+                  }}
                 />
               </Field>
               <Field label={t('fieldNumber')}>

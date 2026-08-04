@@ -18,6 +18,7 @@ import {
   FORM_SPAN_FULL,
 } from '@/lib/campaign/form-layout';
 import { cn } from '@/lib/utils';
+import { CepInput } from '@/components/brazil/cep-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -229,7 +230,17 @@ export function SupporterFormDialog({
           <div className={FORM_GRID_CLASS}>
             <div className="space-y-1.5">
               <Label>CEP</Label>
-              <Input className="bg-background" value={cep} onChange={(e) => setCep(e.target.value)} />
+              <CepInput
+                value={cep}
+                onChange={setCep}
+                onResolved={(addr) => {
+                  setAddress(addr.address);
+                  setNeighborhood(addr.neighborhood);
+                  setCity(addr.city);
+                  setState(addr.state);
+                  if (addr.complement) setComplement(addr.complement);
+                }}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>{t('fieldNumber')}</Label>

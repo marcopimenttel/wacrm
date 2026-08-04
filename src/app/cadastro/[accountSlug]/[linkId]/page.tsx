@@ -10,6 +10,7 @@ import {
   GENDER_OPTIONS,
   SUPPORTER_MARITAL_OPTIONS,
 } from '@/lib/campaign/constants';
+import { CepInput } from '@/components/brazil/cep-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -199,7 +200,17 @@ export default function PublicCadastroPage() {
             </div>
             <div className="space-y-1.5">
               <Label>CEP</Label>
-              <Input className="bg-background" value={cep} onChange={(e) => setCep(e.target.value)} />
+              <CepInput
+                value={cep}
+                onChange={setCep}
+                onResolved={(addr) => {
+                  setAddress(addr.address);
+                  setNeighborhood(addr.neighborhood);
+                  setCity(addr.city);
+                  setState(addr.state);
+                  if (addr.complement) setComplement(addr.complement);
+                }}
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Número</Label>

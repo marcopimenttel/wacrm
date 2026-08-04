@@ -15,3 +15,5 @@ Ao implementar ou alterar módulos de campanha/SaaS político neste repo:
 4. Objetivo: mesmos campos, choices, relações e fluxos do O Candidato; UI no design system WACRM.
 5. **Não** portar Evolution/WhatsApp do O Candidato — manter a suite WhatsApp do WACRM.
 6. Hierarquia WACRM: Account → **Coordenador** (entidade nova) → Liderança → Apoiador.
+7. **Mercado exclusivo Brasil:** máscaras/validações BR (CEP, CPF, telefone, UF). CEP via `/api/cep` → ViaCEP (blur preenche logradouro/bairro/cidade/UF), como em `apps/core/views_cep.py`.
+8. **Isolamento plataforma:** painel `/platform` e `/api/platform` só para e-mails em `PLATFORM_ADMIN_EMAILS` (equivalente a `is_superuser`). Tenants **nunca** veem gestão de clientes, white-label global nem configs do dono do SaaS. Sidebar já oculta; middleware redireciona/403.
