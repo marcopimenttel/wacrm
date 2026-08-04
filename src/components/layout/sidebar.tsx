@@ -17,6 +17,7 @@ import {
   Handshake,
   LayoutDashboard,
   LogOut,
+  MapPinned,
   MessageSquare,
   Radio,
   Settings,
@@ -170,6 +171,12 @@ const campaignNavItems: NavItem[] = [
     icon: Handshake,
     module: ROUTE_MODULE["/campaign/supporters"],
   },
+  {
+    href: "/campaign/zones",
+    labelKey: "zones",
+    icon: MapPinned,
+    module: "campaign.coordinators",
+  },
 ];
 
 const bottomNavItems = [
@@ -215,13 +222,41 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     [canUseModule],
   );
 
+  const [leadershipScoped, setLeadershipScoped] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/campaign/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (!cancelled && body?.scope === "leadership") {
+          setLeadershipScoped(true);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.email]);
+
+  const visibleCampaignNav = useMemo(
+    () =>
+      leadershipScoped
+        ? visibleCampaignItems.filter(
+            (item) =>
+              item.href === "/campaign/supporters" ||
+              item.href === "/campaign/leaderships",
+          )
+        : visibleCampaignItems,
+    [visibleCampaignItems, leadershipScoped],
+  );
+
   const whatsappChildActive = visibleWhatsappItems.some(
     (item) =>
       pathname === item.href ||
       (item.href !== "/dashboard" && pathname.startsWith(item.href)),
   );
 
-  const campaignChildActive = visibleCampaignItems.some(
+  const campaignChildActive = visibleCampaignNav.some(
     (item) => pathname === item.href || pathname.startsWith(item.href),
   );
 
@@ -303,7 +338,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           {/* Campanha — coordenadores, lideranças, apoiadores */}
-          {visibleCampaignItems.length > 0 ? (
+          {visibleCampaignNav.length > 0 ? (
             <div className="mb-2 flex flex-col gap-1">
               <button
                 type="button"
@@ -328,7 +363,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
               {campaignOpen ? (
                 <ul className="ml-2 flex flex-col gap-1 border-l border-border pl-2">
-                  {visibleCampaignItems.map((item) => {
+                  {visibleCampaignNav.map((item) => {
                     const isActive =
                       pathname === item.href || pathname.startsWith(item.href);
                     return (

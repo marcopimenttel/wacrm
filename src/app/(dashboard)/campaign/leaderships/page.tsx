@@ -1,21 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2, Plus, Users } from 'lucide-react';
+import { Link2, Loader2, Pencil, Plus, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 
 import { useCan } from '@/hooks/use-can';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -24,95 +17,78 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import {
+  LeadershipFormDialog,
+  type LeadershipFormValues,
+} from '@/components/campaign/leadership-form-dialog';
 
-interface CoordinatorOption {
-  id: string;
-  name: string;
-}
-
-interface Leadership {
+interface LeadershipRow extends LeadershipFormValues {
   id: string;
   name: string;
   phone: string | null;
   city: string | null;
   state: string | null;
   status: string;
-  coordinator_id: string;
+  registration_slug: string | null;
   campaign_coordinators?: { id: string; name: string } | null;
 }
 
-/** Lideranças vinculadas a um coordenador. */
+/** Lista + formulário completo de lideranças. */
 export default function LeadershipsPage() {
   const t = useTranslations('Campaign.leaderships');
   const canEdit = useCan('send-messages');
-  const [rows, setRows] = useState<Leadership[]>([]);
-  const [coordinators, setCoordinators] = useState<CoordinatorOption[]>([]);
+  const { account } = useAuth();
+  const [rows, setRows] = useState<LeadershipRow[]>([]);
+  const [coordinators, setCoordinators] = useState<{ id: string; name: string }[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [coordinatorId, setCoordinatorId] = useState('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
+  const [edit, setEdit] = useState<LeadershipRow | null>(null);
+  const [scope, setScope] = useState<'team' | 'leadership'>('team');
+  const [accountSlug, setAccountSlug] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [leadRes, coordRes] = await Promise.all([
+      const [leadRes, coordRes, meRes] = await Promise.all([
         fetch('/api/campaign/leaderships'),
         fetch('/api/campaign/coordinators'),
+        fetch('/api/campaign/me'),
       ]);
       const leadBody = await leadRes.json().catch(() => ({}));
       const coordBody = await coordRes.json().catch(() => ({}));
+      const meBody = await meRes.json().catch(() => ({}));
       if (!leadRes.ok) {
         toast.error(leadBody.error ?? t('loadError'));
         return;
       }
       setRows(leadBody.leaderships ?? []);
+      setScope(leadBody.scope === 'leadership' ? 'leadership' : 'team');
       setCoordinators(coordBody.coordinators ?? []);
-      if (!coordinatorId && (coordBody.coordinators?.[0] as CoordinatorOption | undefined)?.id) {
-        setCoordinatorId(coordBody.coordinators[0].id);
-      }
+      setAccountSlug(meBody.accountSlug ?? null);
     } catch {
       toast.error(t('loadError'));
     } finally {
       setLoading(false);
     }
-  }, [coordinatorId, t]);
+  }, [t]);
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [load]);
 
-  const submit = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch('/api/campaign/leaderships', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coordinatorId, name, phone, city, state }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(body.error ?? t('saveError'));
-        return;
-      }
-      toast.success(t('saveOk'));
-      setOpen(false);
-      setName('');
-      setPhone('');
-      setCity('');
-      setState('');
-      await load();
-    } catch {
-      toast.error(t('saveError'));
-    } finally {
-      setSaving(false);
+  const copyLink = (row: LeadershipRow) => {
+    if (!accountSlug || !row.registration_slug) {
+      toast.error(t('linkMissing'));
+      return;
     }
+    const url = `${window.location.origin}/cadastro/${accountSlug}/${row.registration_slug}`;
+    void navigator.clipboard.writeText(url);
+    toast.success(t('linkCopied'));
   };
+
+  const isLeadershipUser = scope === 'leadership';
 
   return (
     <div className="space-y-6">
@@ -126,10 +102,13 @@ export default function LeadershipsPage() {
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{t('description')}</p>
         </div>
-        {canEdit ? (
+        {canEdit && !isLeadershipUser ? (
           <Button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              setEdit(null);
+              setOpen(true);
+            }}
             disabled={coordinators.length === 0}
           >
             <Plus className="size-4" />
@@ -138,7 +117,7 @@ export default function LeadershipsPage() {
         ) : null}
       </div>
 
-      {coordinators.length === 0 && !loading ? (
+      {coordinators.length === 0 && !loading && !isLeadershipUser ? (
         <p className="text-sm text-muted-foreground">{t('needCoordinator')}</p>
       ) : null}
 
@@ -147,23 +126,26 @@ export default function LeadershipsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>{t('colName')}</TableHead>
-              <TableHead>{t('colCoordinator')}</TableHead>
+              {!isLeadershipUser ? (
+                <TableHead>{t('colCoordinator')}</TableHead>
+              ) : null}
               <TableHead>{t('colPhone')}</TableHead>
               <TableHead>{t('colCity')}</TableHead>
               <TableHead>{t('colStatus')}</TableHead>
+              <TableHead className="w-[1%]">{t('colActions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center">
+                <TableCell colSpan={6} className="py-10 text-center">
                   <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
                   {t('empty')}
@@ -174,10 +156,17 @@ export default function LeadershipsPage() {
                 <TableRow key={row.id}>
                   <TableCell className="font-medium text-foreground">
                     {row.name}
+                    {row.nickname ? (
+                      <span className="ml-1 text-muted-foreground">
+                        ({String(row.nickname)})
+                      </span>
+                    ) : null}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {row.campaign_coordinators?.name ?? '—'}
-                  </TableCell>
+                  {!isLeadershipUser ? (
+                    <TableCell className="text-muted-foreground">
+                      {row.campaign_coordinators?.name ?? '—'}
+                    </TableCell>
+                  ) : null}
                   <TableCell className="text-muted-foreground">
                     {row.phone ?? '—'}
                   </TableCell>
@@ -187,6 +176,34 @@ export default function LeadershipsPage() {
                   <TableCell>
                     <Badge variant="secondary">{row.status}</Badge>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      {canEdit ? (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            setEdit(row);
+                            setOpen(true);
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                      ) : null}
+                      {!isLeadershipUser ? (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => copyLink(row)}
+                          title={t('copyLink')}
+                        >
+                          <Link2 className="size-4" />
+                        </Button>
+                      ) : null}
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -194,81 +211,16 @@ export default function LeadershipsPage() {
         </Table>
       </div>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('dialogTitle')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="lead-coord">{t('colCoordinator')}</Label>
-              <select
-                id="lead-coord"
-                value={coordinatorId}
-                onChange={(e) => setCoordinatorId(e.target.value)}
-                className="flex h-9 w-full rounded-lg border border-input bg-background px-3 text-sm"
-              >
-                {coordinators.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="lead-name">{t('colName')}</Label>
-              <Input
-                id="lead-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="bg-background"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="lead-phone">{t('colPhone')}</Label>
-              <Input
-                id="lead-phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="bg-background"
-              />
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="lead-city">{t('colCity')}</Label>
-                <Input
-                  id="lead-city"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="bg-background"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="lead-state">{t('colState')}</Label>
-                <Input
-                  id="lead-state"
-                  value={state}
-                  onChange={(e) => setState(e.target.value)}
-                  className="bg-background"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              {t('cancel')}
-            </Button>
-            <Button
-              type="button"
-              disabled={saving || !name.trim() || !coordinatorId}
-              onClick={submit}
-            >
-              {saving ? <Loader2 className="size-4 animate-spin" /> : null}
-              {t('save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <LeadershipFormDialog
+        open={open}
+        onOpenChange={setOpen}
+        coordinators={coordinators}
+        initial={edit}
+        onSaved={load}
+        isLeadershipUser={isLeadershipUser}
+      />
+
+      {account?.name ? null : null}
     </div>
   );
 }

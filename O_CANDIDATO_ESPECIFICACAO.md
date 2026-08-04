@@ -419,10 +419,15 @@ Campos: recipient, title, message, priority low\|normal\|high\|urgent, data JSON
 
 ---
 
-## 19. Core auxiliar
+## 17. Zona da cidade (Brasil)
 
-- **MunicipioCalha:** UF + município → calha/região (ex. Amazonas)  
-- **city_zones:** hoje **Manaus-centric** (Norte/Sul/Leste/Oeste/Centro-Oeste/Centro-Sul/Rural + mapa bairro→zona). Decidir se fica configurável por tenant.
+No O Candidato as zonas são fixas de Manaus. No WACRM:
+
+- Tabela `campaign_city_zones` **por conta** (nome livre).
+- Campo `city_zone` texto em liderança/apoiador.
+- Cada campanha cadastra as zonas da sua cidade/UF (Norte, Centro, Distrito, Rural, etc.).
+
+UF usa lista completa das 27 unidades federativas.
 
 ---
 
