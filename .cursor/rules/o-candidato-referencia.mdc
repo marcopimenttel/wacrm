@@ -1,0 +1,17 @@
+---
+description: Sempre consultar O Candidato (somente leitura) ao portar módulos políticos
+alwaysApply: true
+---
+
+# Fonte da verdade: O Candidato
+
+Ao implementar ou alterar módulos de campanha/SaaS político neste repo:
+
+1. **Ler somente** (nunca editar) o sistema de referência em:
+   `C:\Users\Marcos Pimentel\Documents\o_candidato`
+2. Consultar sobretudo `apps/<modulo>/models.py`, `forms.py`, views e templates.
+3. Seguir e atualizar o inventário de campos em:
+   `O_CANDIDATO_ESPECIFICACAO.md` (raiz deste projeto).
+4. Objetivo: mesmos campos, choices, relações e fluxos do O Candidato; UI no design system WACRM.
+5. **Não** portar Evolution/WhatsApp do O Candidato — manter a suite WhatsApp do WACRM.
+6. Hierarquia WACRM: Account → **Coordenador** (entidade nova) → Liderança → Apoiador.
