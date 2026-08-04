@@ -57,6 +57,13 @@ export interface Account {
   name: string;
   /** auth.users.id of the immutable owner. */
   owner_user_id: string;
+  /** ISO-4217 currency code (migration 021). */
+  default_currency?: string;
+  /** FK to plans (migration 037). */
+  plan_id?: string | null;
+  subscription_status?: "trial" | "active" | "past_due" | "canceled";
+  trial_ends_at?: string | null;
+  subscription_ends_at?: string | null;
   created_at: string;
   updated_at: string;
 }

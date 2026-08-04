@@ -38,7 +38,8 @@
     "defaultAvatar": "Avatar",
     "menuProfile": "Perfil",
     "menuSettings": "Configurações",
-    "menuSignOut": "Sair"
+    "menuSignOut": "Sair",
+    "groupWhatsApp": "WhatsApp"
   },
   "Header": {
     "dashboard": "Painel",

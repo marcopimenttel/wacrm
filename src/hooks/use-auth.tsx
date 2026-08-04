@@ -20,6 +20,12 @@ import {
   isAccountRole,
   type AccountRole,
 } from "@/lib/auth/roles";
+import {
+  canUseModule as accountHasModule,
+  isSubscriptionStatus,
+  type ModuleKey,
+  type SubscriptionStatus,
+} from "@/lib/saas/modules";
 
 interface Profile {
   id: string;
@@ -43,6 +49,14 @@ interface AccountSummary {
   /** Default deal currency (ISO-4217). NOT NULL DEFAULT 'USD' in the
    *  DB (migration 021); narrowed to DEFAULT_CURRENCY when absent. */
   default_currency: string;
+  /** SaaS plan id (migration 037). Null until migration applied. */
+  plan_id: string | null;
+  plan_key: string | null;
+  plan_name: string | null;
+  subscription_status: SubscriptionStatus;
+  trial_ends_at: string | null;
+  /** Module keys enabled by the account's plan. Empty → fail-open. */
+  enabled_modules: string[];
 }
 
 interface AuthContextValue {
@@ -102,6 +116,14 @@ interface AuthContextValue {
   canEditSettings: boolean;
   /** True if the caller can send messages and edit operational data (agent+). */
   canSendMessages: boolean;
+  /**
+   * Whether the account's plan includes `moduleKey`. Fail-opens when
+   * modules haven't loaded yet (pre-037 / empty list).
+   */
+  canUseModule: (moduleKey: ModuleKey) => boolean;
+  /** Enabled module keys for the current plan (may be empty). */
+  enabledModules: string[];
+  subscriptionStatus: SubscriptionStatus | null;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -169,23 +191,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (data.account_id) {
           const { data: account, error: accountErr } = await supabase
             .from("accounts")
-            // default_currency added in migration 021; narrowed to the
-            // USD fallback below for older schemas where it reads null.
-            .select("id, name, default_currency")
+            // SaaS columns from migration 037; select fails soft if the
+            // migration hasn't been applied yet — we fall back below.
+            .select(
+              "id, name, default_currency, plan_id, subscription_status, trial_ends_at, plans(key, name, plan_modules(module_key))",
+            )
             .eq("id", data.account_id)
             .maybeSingle();
           if (accountErr) {
-            console.error("[AuthProvider] fetchAccount error:", {
+            // Pre-037 schemas reject the nested select. Retry the lean
+            // shape so chrome still works while migrations catch up.
+            console.warn("[AuthProvider] fetchAccount SaaS select failed, falling back:", {
               message: accountErr.message,
-              details: accountErr.details,
-              hint: accountErr.hint,
               code: accountErr.code,
             });
+            const { data: lean, error: leanErr } = await supabase
+              .from("accounts")
+              .select("id, name, default_currency")
+              .eq("id", data.account_id)
+              .maybeSingle();
+            if (leanErr) {
+              console.error("[AuthProvider] fetchAccount error:", {
+                message: leanErr.message,
+                details: leanErr.details,
+                hint: leanErr.hint,
+                code: leanErr.code,
+              });
+            } else if (lean) {
+              accountRow = {
+                id: lean.id,
+                name: lean.name,
+                default_currency: lean.default_currency ?? DEFAULT_CURRENCY,
+                plan_id: null,
+                plan_key: null,
+                plan_name: null,
+                subscription_status: "active",
+                trial_ends_at: null,
+                enabled_modules: [],
+              };
+            }
           } else if (account) {
+            const plan = Array.isArray(account.plans)
+              ? account.plans[0]
+              : account.plans;
+            const moduleRows = plan?.plan_modules;
+            const enabled = Array.isArray(moduleRows)
+              ? moduleRows
+                  .map((row: { module_key?: string }) => row.module_key)
+                  .filter((k: string | undefined): k is string => !!k)
+              : [];
             accountRow = {
               id: account.id,
               name: account.name,
               default_currency: account.default_currency ?? DEFAULT_CURRENCY,
+              plan_id: account.plan_id ?? null,
+              plan_key: plan?.key ?? null,
+              plan_name: plan?.name ?? null,
+              subscription_status: isSubscriptionStatus(
+                account.subscription_status,
+              )
+                ? account.subscription_status
+                : "active",
+              trial_ends_at: account.trial_ends_at ?? null,
+              enabled_modules: enabled,
             };
           }
         }
@@ -320,6 +388,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // dependencies downstream.
   const derived = useMemo(() => {
     const role = profile?.account_role ?? null;
+    const enabledModules = account?.enabled_modules ?? [];
     return {
       accountRole: role,
       accountId: profile?.account_id ?? null,
@@ -330,8 +399,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       canManageMembers: role ? canManageMembersFor(role) : false,
       canEditSettings: role ? canEditSettingsFor(role) : false,
       canSendMessages: role ? canSendMessagesFor(role) : false,
+      enabledModules,
+      subscriptionStatus: account?.subscription_status ?? null,
+      canUseModule: (moduleKey: ModuleKey) =>
+        accountHasModule(enabledModules, moduleKey),
     };
-  }, [profile?.account_role, profile?.account_id]);
+  }, [
+    profile?.account_role,
+    profile?.account_id,
+    account?.enabled_modules,
+    account?.subscription_status,
+  ]);
 
   return (
     <AuthContext.Provider
@@ -383,6 +461,9 @@ export function useAuth(): AuthContextValue {
       canManageMembers: false,
       canEditSettings: false,
       canSendMessages: false,
+      canUseModule: () => true,
+      enabledModules: [],
+      subscriptionStatus: null,
     };
   }
   return ctx;
