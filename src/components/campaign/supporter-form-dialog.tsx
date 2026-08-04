@@ -144,7 +144,10 @@ export function SupporterFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden p-0">
+      <DialogContent
+        size="form"
+        className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0"
+      >
         <DialogHeader className="border-b border-border px-6 py-4">
           <DialogTitle>{t('dialogTitle')}</DialogTitle>
         </DialogHeader>
