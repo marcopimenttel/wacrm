@@ -12,7 +12,7 @@ import { PresenceHeartbeat } from "@/components/presence/presence-heartbeat";
 // client components can't export Next's metadata object.
 
 function DashboardShellInner({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, account } = useAuth();
   const router = useRouter();
 
   // Sidebar drawer state — only used on mobile. On lg+ the sidebar is
@@ -40,14 +40,20 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Reports this tab's online/away presence once we know a user is
-          signed in. Headless — renders nothing. */}
+    <div
+      className="flex h-screen overflow-hidden bg-background"
+      style={
+        account?.primary_color
+          ? ({
+              ["--primary" as string]: account.primary_color,
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
       <PresenceHeartbeat />
       <Sidebar open={sidebarOpen} onClose={closeSidebar} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header onOpenSidebar={() => setSidebarOpen(true)} />
-        {/* Thinner horizontal padding on mobile so cards have room to breathe. */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
       </div>
     </div>

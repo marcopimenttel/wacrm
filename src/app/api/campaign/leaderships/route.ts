@@ -88,6 +88,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Coordenador inválido" }, { status: 400 });
     }
 
+    const { assertUnderQuota } = await import("@/lib/saas/quotas");
+    const quota = await assertUnderQuota(ctx.supabase, ctx.accountId, "leaderships");
+    if (!quota.ok) {
+      return NextResponse.json({ error: quota.error }, { status: 403 });
+    }
+
     const name = String(body.name).trim();
     const { data: existingSlugs } = await ctx.supabase
       .from("campaign_leaderships")

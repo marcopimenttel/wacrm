@@ -2,6 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { isPlatformAdminEmail } from '@/lib/saas/platform-admin'
+import {
+  evaluateSubscriptionAccess,
+  isSubscriptionExemptPath,
+} from '@/lib/saas/subscription-access'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -45,11 +49,6 @@ export async function middleware(request: NextRequest) {
   }
 
   // Auth pages - redirect to dashboard if already logged in.
-  // Exception: when an invite token is in the query string we
-  // send the already-signed-in user to /join/<token> instead so
-  // they can accept the invitation in one click. Without this,
-  // a forwarded invite link to someone who's already signed in
-  // would silently drop them on /dashboard.
   if (user && (
     request.nextUrl.pathname === '/login' ||
     request.nextUrl.pathname === '/signup' ||
@@ -71,7 +70,6 @@ export async function middleware(request: NextRequest) {
     return withRefreshedCookies(NextResponse.redirect(url))
   }
 
-  // Páginas protegidas — redireciona para login se não autenticado
   const protectedPaths = [
     '/dashboard',
     '/inbox',
@@ -85,6 +83,7 @@ export async function middleware(request: NextRequest) {
     '/notifications',
     '/platform',
     '/campaign',
+    '/billing',
   ]
   if (!user && protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))) {
     const url = request.nextUrl.clone()
@@ -92,8 +91,7 @@ export async function middleware(request: NextRequest) {
     return withRefreshedCookies(NextResponse.redirect(url))
   }
 
-  // Painel / API de plataforma: só e-mails em PLATFORM_ADMIN_EMAILS
-  // (tenants nunca acessam — igual O Candidato is_superuser).
+  // Painel plataforma: só PLATFORM_ADMIN_EMAILS
   const isPlatformPath =
     request.nextUrl.pathname.startsWith('/platform') ||
     request.nextUrl.pathname.startsWith('/api/platform')
@@ -109,7 +107,63 @@ export async function middleware(request: NextRequest) {
     return withRefreshedCookies(NextResponse.redirect(url))
   }
 
-  // API routes that need auth (not webhooks)
+  // Sprint 1: bloqueio comercial
+  if (
+    user &&
+    !isPlatformAdminEmail(user.email) &&
+    !isSubscriptionExemptPath(request.nextUrl.pathname) &&
+    (protectedPaths.some((p) => request.nextUrl.pathname.startsWith(p)) ||
+      request.nextUrl.pathname.startsWith('/api/'))
+  ) {
+    // Webhooks e crons públicos não passam por sessão de usuário
+    if (
+      request.nextUrl.pathname.includes('/webhook') ||
+      request.nextUrl.pathname.startsWith('/api/public') ||
+      request.nextUrl.pathname.startsWith('/api/cep')
+    ) {
+      return supabaseResponse
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('account_id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (profile?.account_id) {
+      const { data: account } = await supabase
+        .from('accounts')
+        .select('subscription_status, trial_ends_at')
+        .eq('id', profile.account_id)
+        .maybeSingle()
+
+      if (account) {
+        const access = evaluateSubscriptionAccess({
+          status: account.subscription_status,
+          trialEndsAt: account.trial_ends_at,
+        })
+        if (!access.allowed) {
+          if (request.nextUrl.pathname.startsWith('/api/')) {
+            return withRefreshedCookies(
+              NextResponse.json(
+                {
+                  error: 'Assinatura inativa',
+                  reason: access.reason,
+                  code: 'subscription_blocked',
+                },
+                { status: 402 },
+              ),
+            )
+          }
+          const url = request.nextUrl.clone()
+          url.pathname = '/billing/blocked'
+          url.search = `?reason=${encodeURIComponent(access.reason)}`
+          return withRefreshedCookies(NextResponse.redirect(url))
+        }
+      }
+    }
+  }
+
   if (!user && request.nextUrl.pathname.startsWith('/api/whatsapp/') &&
       !request.nextUrl.pathname.includes('/webhook')) {
     return withRefreshedCookies(

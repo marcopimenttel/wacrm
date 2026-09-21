@@ -72,6 +72,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Liderança inválida" }, { status: 400 });
     }
 
+    const { assertUnderQuota } = await import("@/lib/saas/quotas");
+    const quota = await assertUnderQuota(ctx.supabase, ctx.accountId, "supporters");
+    if (!quota.ok) {
+      return NextResponse.json({ error: quota.error }, { status: 403 });
+    }
+
     const phone = emptyToNull(body.phone) ?? "";
     if (phone) {
       const { data: dup } = await ctx.supabase

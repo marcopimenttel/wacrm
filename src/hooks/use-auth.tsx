@@ -59,6 +59,9 @@ interface AccountSummary {
   enabled_modules: string[];
   billing_cpf_cnpj?: string | null;
   asaas_invoice_url?: string | null;
+  /** White-label do tenant (migration 040). */
+  primary_color?: string | null;
+  logo_url?: string | null;
 }
 
 interface AuthContextValue {
@@ -196,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // SaaS columns from migration 037; select fails soft if the
             // migration hasn't been applied yet — we fall back below.
             .select(
-              "id, name, default_currency, plan_id, subscription_status, trial_ends_at, billing_cpf_cnpj, asaas_invoice_url, plans(key, name, plan_modules(module_key))",
+              "id, name, default_currency, plan_id, subscription_status, trial_ends_at, billing_cpf_cnpj, asaas_invoice_url, primary_color, logo_url, plans(key, name, plan_modules(module_key))",
             )
             .eq("id", data.account_id)
             .maybeSingle();
@@ -260,7 +263,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               enabled_modules: enabled,
               billing_cpf_cnpj: account.billing_cpf_cnpj ?? null,
               asaas_invoice_url: account.asaas_invoice_url ?? null,
+              primary_color: account.primary_color ?? null,
+              logo_url: account.logo_url ?? null,
             };
+
+            // Overrides por tenant (account_modules)
+            try {
+              const { data: overrides } = await supabase
+                .from("account_modules")
+                .select("module_key, enabled")
+                .eq("account_id", data.account_id);
+              if (overrides?.length) {
+                const { mergeModuleAccess } = await import(
+                  "@/lib/saas/modules"
+                );
+                const map: Record<string, boolean> = {};
+                for (const row of overrides) {
+                  map[row.module_key] = row.enabled;
+                }
+                accountRow.enabled_modules = mergeModuleAccess(
+                  accountRow.enabled_modules,
+                  map,
+                );
+              }
+            } catch {
+              /* coluna/tabela pode não existir ainda */
+            }
           }
         }
 

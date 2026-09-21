@@ -1,0 +1,101 @@
+# ============================================================
+# Coolify / VPS — Postgres gerenciado (sem Supabase Cloud)
+# ============================================================
+#
+# Uso no Coolify:
+# 1. Crie um recurso "Docker Compose" apontando para este arquivo
+#    OU crie um serviço Postgres separado e use só o app.
+# 2. Copie `.env.coolify.example` → variáveis do Coolify.
+# 3. Rode as migrations: `node scripts/apply-migrations.mjs`
+#
+# Auth / REST: o app ainda usa o cliente style-Supabase
+# (`/auth/v1` + `/rest/v1`). Em produção self-hosted, suba o
+# perfil `compat` (GoTrue + PostgREST + Kong) OU um stack
+# Supabase self-hosted na mesma VPS. O banco em si é Postgres
+# puro na sua VPS — não depende do Supabase Cloud.
+# ============================================================
+
+name: wacrm-coolify
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wacrm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-wacrm}
+    volumes:
+      - wacrm_pgdata:/var/lib/postgresql/data
+      # Extensões / bootstrap mínimo (uuid)
+      - ./init-db:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wacrm} -d ${POSTGRES_DB:-wacrm}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - wacrm
+
+  # Aplica supabase/migrations/*.sql em ordem (one-shot).
+  migrate:
+    image: postgres:16-alpine
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-wacrm}
+      PGDATABASE: ${POSTGRES_DB:-wacrm}
+    volumes:
+      - ../../supabase/migrations:/migrations:ro
+      - ./run-migrations.sh:/run-migrations.sh:ro
+    entrypoint: ["/bin/sh", "/run-migrations.sh"]
+    networks:
+      - wacrm
+    restart: "no"
+
+  app:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
+        NEXT_PUBLIC_APP_LOCALE: ${NEXT_PUBLIC_APP_LOCALE:-pt-BR}
+    env_file:
+      - ../../.env.local
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-wacrm}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-wacrm}
+    ports:
+      - "${HOST_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - wacrm
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000').then((r)=>process.exit(r.ok||r.status<500?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  wacrm_pgdata:
+
+networks:
+  wacrm:
+    driver: bridge

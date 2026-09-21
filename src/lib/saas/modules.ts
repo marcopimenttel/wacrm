@@ -80,7 +80,8 @@ export type SubscriptionStatus =
   | "trial"
   | "active"
   | "past_due"
-  | "canceled";
+  | "canceled"
+  | "blocked";
 
 export function isSubscriptionStatus(
   value: unknown,
@@ -89,7 +90,8 @@ export function isSubscriptionStatus(
     value === "trial" ||
     value === "active" ||
     value === "past_due" ||
-    value === "canceled"
+    value === "canceled" ||
+    value === "blocked"
   );
 }
 
@@ -97,7 +99,7 @@ export function isSubscriptionStatus(
  * Indica se a conta pode usar o módulo.
  * - Lista vazia/ausente → libera (fail-open na transição).
  * - Pai `whatsapp` / `campaign` libera os filhos `*.`.
- * - past_due / canceled ainda veem módulos; o bloqueio duro vem com o checkout.
+ * - Overrides em `account_modules` já devem estar mesclados em `enabledModules`.
  */
 export function canUseModule(
   enabledModules: readonly string[] | null | undefined,
@@ -118,6 +120,23 @@ export function canUseModule(
     return true;
   }
   return false;
+}
+
+/**
+ * Mescla módulos do plano com overrides por tenant.
+ * `overrides`: mapa module_key → enabled.
+ */
+export function mergeModuleAccess(
+  planModules: readonly string[] | null | undefined,
+  overrides: Record<string, boolean> | null | undefined,
+): string[] {
+  const base = new Set(planModules ?? []);
+  if (!overrides) return [...base];
+  for (const [key, enabled] of Object.entries(overrides)) {
+    if (enabled) base.add(key);
+    else base.delete(key);
+  }
+  return [...base];
 }
 
 export function moduleForPath(pathname: string): ModuleKey | null {

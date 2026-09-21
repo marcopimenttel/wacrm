@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -32,9 +32,6 @@ export default function LoginPage() {
 
 function LoginPageInner() {
   const searchParams = useSearchParams();
-  // Forwarded from `/join/<token>` when the visitor already has an
-  // account. After a successful sign-in we send them to the join
-  // page to accept rather than to /dashboard.
   const inviteToken = searchParams.get("invite");
   const t = useTranslations("LoginPage");
 
@@ -42,7 +39,23 @@ function LoginPageInner() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [brand, setBrand] = useState<{
+    site_name?: string;
+    login_title?: string;
+    login_subtitle?: string;
+    primary_color?: string;
+    login_logo_url?: string | null;
+  } | null>(null);
   const supabase = createClient();
+
+  useEffect(() => {
+    void fetch("/api/platform/settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (body?.settings) setBrand(body.settings);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,38 +73,52 @@ function LoginPageInner() {
       return;
     }
 
-    // Full-page navigation (not router.push) so the browser issues a
-    // fresh top-level request that carries the just-written Supabase
-    // auth cookies to the middleware gating /dashboard. A soft
-    // client-side navigation can reach the protected route before the
-    // server observes the new session, so the middleware bounces it
-    // back to /login — which looks like the page "just refreshing"
-    // instead of signing in (issue #365). Mirrors the deliberate full
-    // reload the invite-accept flow already uses in join/[token].
     const destination = inviteToken
       ? `/join/${encodeURIComponent(inviteToken)}`
       : "/dashboard";
     window.location.href = destination;
   };
 
+  const title = inviteToken
+    ? t("titleAccept")
+    : brand?.login_title || t("titleWelcome");
+  const desc = inviteToken
+    ? t("descAccept")
+    : brand?.login_subtitle || t("descWelcome");
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div
+      className="flex min-h-screen items-center justify-center bg-background px-4"
+      style={
+        brand?.primary_color
+          ? ({ ["--primary" as string]: brand.primary_color } as React.CSSProperties)
+          : undefined
+      }
+    >
       <Card className="w-full max-w-md border-border bg-card">
         <CardHeader className="items-center text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            {inviteToken ? (
+          <div className="mb-2 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-primary/10">
+            {brand?.login_logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brand.login_logo_url}
+                alt={brand.site_name ?? "logo"}
+                className="h-10 w-10 object-contain"
+              />
+            ) : inviteToken ? (
               <UsersRound className="h-6 w-6 text-primary" />
             ) : (
               <MessageSquare className="h-6 w-6 text-primary" />
             )}
           </div>
-          <CardTitle className="text-xl text-foreground">
-            {inviteToken ? t('titleAccept') : t('titleWelcome')}
-          </CardTitle>
+          {brand?.site_name ? (
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {brand.site_name}
+            </p>
+          ) : null}
+          <CardTitle className="text-xl text-foreground">{title}</CardTitle>
           <CardDescription className="text-muted-foreground">
-            {inviteToken
-              ? t('descAccept')
-              : t('descWelcome')}
+            {desc}
           </CardDescription>
         </CardHeader>
         <CardContent>
