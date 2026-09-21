@@ -14,7 +14,7 @@ O banco de verdade é o Postgres da Coolify; o “Supabase Cloud” fica fora.
 ## Passo a passo (Coolify)
 
 1. Crie um serviço **PostgreSQL** (ou use o `docker-compose.yml` desta pasta).
-2. Defina as variáveis de `.env.coolify.example` no Coolify.
+2. Defina as variáveis de `env.coolify.example` no Coolify.
 3. Rode as migrations:
    - Via serviço `migrate` do compose, **ou**
    - Na máquina com acesso ao DB:  
