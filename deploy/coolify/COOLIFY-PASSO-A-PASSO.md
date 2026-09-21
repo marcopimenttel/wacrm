@@ -1,0 +1,150 @@
+# Deploy no Coolify (VPS) — WACRM / Meu Candidato
+
+Coolify: `http://168.231.100.18:8000`  
+Repo: `https://github.com/marcopimenttel/wacrm` (branch `main`)
+
+## Visão dos recursos
+
+No Coolify você cria **1 Project** e dentro dele **2–3 resources**:
+
+| Ordem | Resource | Tipo no Coolify | Função |
+|------:|----------|-----------------|--------|
+| 1 | `wacrm-db` | **PostgreSQL** (database) | Banco na VPS |
+| 2 | `wacrm-app` | **Dockerfile** (GitHub) | Next.js |
+| 3 | (depois) Auth API | Compose / serviço extra | GoTrue+PostgREST — necessário para login sem Supabase Cloud |
+
+> Enquanto a Auth API self-hosted não existir, o app **não autentica** só com Postgres.  
+> Fase 1: sobe DB + App com build ok. Fase 2: Auth. Ou, temporário, aponta `NEXT_PUBLIC_SUPABASE_*` para um projeto Supabase Cloud só de Auth (não ideal, mas desbloqueia).
+
+---
+
+## Passo 1 — Criar o Project
+
+1. Abra **Projects**
+2. Clique **+ Add**
+3. Nome: `WACRM` (ou `Meu Candidato SaaS`)
+4. Description: `SaaS político + WhatsApp CRM`
+5. Salve
+
+---
+
+## Passo 2 — Adicionar PostgreSQL
+
+Dentro do project **WACRM**:
+
+1. **+ Add Resource** → **Database** → **PostgreSQL**
+2. Nome: `wacrm-db`
+3. Anote (Coolify mostra após criar):
+   - Host interno (ex.: `wacrm-db` ou IP interno)
+   - Porta `5432`
+   - User / Password / Database
+4. Exemplo de `DATABASE_URL` (rede interna Coolify):
+
+```text
+postgresql://USER:PASSWORD@NOME_DO_SERVICO_DB:5432/NOME_DB
+```
+
+5. Deploy / Start do database e espere ficar **healthy**
+
+### Rodar migrations
+
+Com o DB no ar, rode uma vez (Terminal do Coolify no container do DB, ou da sua máquina com IP liberado):
+
+```bash
+# No PC (com psql instalado), apontando para a porta publicada do Postgres:
+DATABASE_URL="postgresql://USER:PASS@168.231.100.18:PORTA_PUBLICA/DB" \
+  node scripts/apply-migrations.mjs
+```
+
+Ou copie as SQLs de `supabase/migrations/*.sql` em ordem no **psql** do Coolify.
+
+---
+
+## Passo 3 — Conectar o GitHub (Sources)
+
+Se ainda não tiver o repo:
+
+1. Sidebar → **Sources**
+2. Add GitHub (OAuth ou Deploy Key)
+3. Autorize `marcopimenttel/wacrm`
+
+---
+
+## Passo 4 — Adicionar o App (Dockerfile)
+
+No project **WACRM**:
+
+1. **+ Add Resource** → **Public Repository** ou **Private Repository** (GitHub)
+2. Repo: `marcopimenttel/wacrm`
+3. Branch: `main`
+4. Build Pack: **Dockerfile** (raiz do repo — já existe `Dockerfile`)
+5. Nome: `wacrm-app`
+6. Port: `3000`
+
+### Build Args (obrigatórios — entram no bundle)
+
+No Coolify → Application → **Build** / **Args**:
+
+| Arg | Exemplo |
+|-----|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL da Auth API (ou temporário supabase.co) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key |
+| `NEXT_PUBLIC_SITE_URL` | `https://crm.seudominio.com.br` |
+| `NEXT_PUBLIC_APP_LOCALE` | `pt-BR` |
+
+### Runtime env (Environment Variables)
+
+Copie de `deploy/coolify/env.coolify.example` e preencha:
+
+- `DATABASE_URL` → aponta para o serviço `wacrm-db`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ENCRYPTION_KEY` (64 hex)
+- `META_APP_SECRET` (se usar WhatsApp)
+- `PLATFORM_ADMIN_EMAILS=marcopimenttel@gmail.com`
+- `NEXT_PUBLIC_PLATFORM_ADMIN_EMAILS=marcopimenttel@gmail.com`
+- `ASAAS_*` (quando for cobrar)
+
+Gere `ENCRYPTION_KEY`:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### Domínio
+
+1. Application → **Domains**
+2. Adicione `crm.seudominio.com.br` (ou o domínio que quiser)
+3. Coolify emite SSL (Let's Encrypt) se o DNS apontar para `168.231.100.18`
+
+---
+
+## Passo 5 — Deploy
+
+1. Clique **Deploy** no `wacrm-app`
+2. Acompanhe o build (Dockerfile multi-stage)
+3. Se falhar: quase sempre é Build Arg `NEXT_PUBLIC_*` faltando
+
+---
+
+## Checklist rápido
+
+- [ ] Project `WACRM` criado
+- [ ] PostgreSQL `wacrm-db` healthy
+- [ ] Migrations aplicadas
+- [ ] Source GitHub `marcopimenttel/wacrm`
+- [ ] App Dockerfile branch `main`
+- [ ] Build args + env preenchidos
+- [ ] Domínio + SSL
+- [ ] Deploy verde
+- [ ] Login funciona (Auth API ok)
+- [ ] Menu **Plataforma** com seu e-mail admin
+
+---
+
+## Ordem recomendada agora (na tela que você abriu)
+
+1. **+ Add** → criar project **WACRM**
+2. Dentro dele → **+ Add Resource** → PostgreSQL
+3. Depois → **+ Add Resource** → Application (GitHub + Dockerfile)
+
+Quando o project e o Postgres estiverem criados, me manda print das variáveis do DB (sem a senha) que eu te monto o `DATABASE_URL` e a lista exata de env do app.
