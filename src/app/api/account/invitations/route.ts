@@ -32,6 +32,7 @@ import {
   rateLimitResponse,
   RATE_LIMITS,
 } from "@/lib/rate-limit";
+import { assertUnderQuota } from "@/lib/saas/quotas";
 
 // Resolve the base URL we publish invite links under.
 //
@@ -212,6 +213,16 @@ export async function POST(request: Request) {
         );
       }
       label = trimmed === "" ? null : trimmed;
+    }
+
+    // Onda B: respeita max_team_members do plano (perfis + convites pendentes)
+    const quota = await assertUnderQuota(
+      ctx.supabase,
+      ctx.accountId,
+      "team_members",
+    );
+    if (!quota.ok) {
+      return NextResponse.json({ error: quota.error }, { status: 403 });
     }
 
     const { token, hash } = generateInviteToken();

@@ -1879,6 +1879,28 @@
       "canceled": "Canceled"
     }
   },
+  "Billing": {
+    "blocked": {
+      "title": "Access suspended",
+      "reasonTrialExpired": "Your trial has ended. Subscribe to a plan to continue.",
+      "reasonPastDue": "There is a pending payment. Settle it on Asaas to unlock the app.",
+      "reasonCanceled": "Your subscription was canceled. Reactivate a plan to return.",
+      "reasonBlocked": "Your account was blocked by the platform administrator.",
+      "accountLabel": "Account: {name}",
+      "ctaPlan": "Go to Plan & billing",
+      "ctaSettings": "Settings"
+    },
+    "banner": {
+      "trialDays": "Your trial ends in {days} days",
+      "trialOneDay": "Your trial ends tomorrow",
+      "trialEndsToday": "Your trial ends today",
+      "trialDescription": "Subscribe so you don’t lose access to campaign and WhatsApp.",
+      "pastDueTitle": "Payment overdue",
+      "pastDueDescription": "Settle the Asaas invoice to restore full access.",
+      "cta": "Subscribe now",
+      "dismiss": "Dismiss notice"
+    }
+  },
   "Campaign": {
     "coordinators": {
       "title": "Coordinators",

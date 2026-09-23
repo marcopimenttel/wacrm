@@ -57,11 +57,18 @@ export async function assertUnderQuota(
       .eq("account_id", accountId);
     count = c ?? 0;
   } else {
-    const { count: c } = await supabase
+    // Membros = perfis na conta + convites pendentes (ainda ocupam vaga)
+    const { count: members } = await supabase
       .from("profiles")
       .select("id", { count: "exact", head: true })
       .eq("account_id", accountId);
-    count = c ?? 0;
+    const { count: pendingInvites } = await supabase
+      .from("account_invitations")
+      .select("id", { count: "exact", head: true })
+      .eq("account_id", accountId)
+      .is("accepted_at", null)
+      .gt("expires_at", new Date().toISOString());
+    count = (members ?? 0) + (pendingInvites ?? 0);
   }
 
   if (count >= max) {

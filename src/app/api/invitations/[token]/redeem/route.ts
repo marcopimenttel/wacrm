@@ -1,25 +1,4 @@
-// ============================================================
-// POST /api/invitations/[token]/redeem
-//
-// Authenticated. Caller atomically moves from their personal
-// account (created at signup) to the inviter's account with the
-// invite's role. Heavy lifting lives in the SECURITY DEFINER
-// `redeem_invitation` RPC from migration 019.
-//
-// Refusal contract (from the RPC)
-//   - SQLSTATE 42501 → 401 (caller not authenticated)
-//   - SQLSTATE 22023 → 400 (invitation not_found / used / expired)
-//   - SQLSTATE 23505 → 409 (caller's account already has data /
-//     they're already in this or another shared account)
-//
-// Rate limit (per IP) is the same shape as peek but tighter —
-// a successful redeem changes data, and the RPC's data-loss
-// guard makes brute-force retries pointless past a few attempts.
-// ============================================================
-
-import { NextResponse } from "next/server";
-import type { PostgrestError } from "@supabase/supabase-js";
-
+import { createServiceRoleClient } from "@/lib/supabase/service";
 import { hashInviteToken } from "@/lib/auth/invitations";
 import {
   checkRateLimit,
@@ -27,6 +6,8 @@ import {
   RATE_LIMITS,
 } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { NextResponse } from "next/server";
+import type { PostgrestError } from "@supabase/supabase-js";
 
 function getClientIp(request: Request): string {
   const xff = request.headers.get("x-forwarded-for");
@@ -53,6 +34,52 @@ function rpcErrorToResponse(err: PostgrestError): NextResponse {
   );
 }
 
+/**
+ * Antes do RPC: se o plano encolheu após o convite, bloqueia o redeem
+ * contando só perfis (o convite atual ainda não virou membro).
+ */
+async function assertRedeemUnderTeamQuota(
+  tokenHash: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const admin = createServiceRoleClient();
+  const { data: invite } = await admin
+    .from("account_invitations")
+    .select("account_id, accepted_at, expires_at")
+    .eq("token_hash", tokenHash)
+    .maybeSingle();
+
+  if (!invite?.account_id) return { ok: true };
+  if (invite.accepted_at) return { ok: true };
+  if (invite.expires_at && new Date(invite.expires_at) <= new Date()) {
+    return { ok: true };
+  }
+
+  const { data: account } = await admin
+    .from("accounts")
+    .select("plans(max_team_members)")
+    .eq("id", invite.account_id)
+    .maybeSingle();
+
+  const plan = Array.isArray(account?.plans)
+    ? account?.plans[0]
+    : account?.plans;
+  const max = plan?.max_team_members ?? null;
+  if (max == null) return { ok: true };
+
+  const { count } = await admin
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("account_id", invite.account_id);
+
+  if ((count ?? 0) >= max) {
+    return {
+      ok: false,
+      error: `Limite do plano atingido (${count}/${max}). Peça um upgrade ao administrador.`,
+    };
+  }
+  return { ok: true };
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ token: string }> },
@@ -71,9 +98,8 @@ export async function POST(
 
   const supabase = await createClient();
 
-  // The RPC checks `auth.uid()` itself, but failing fast here
-  // gives a cleaner 401 without a Supabase round trip on the
-  // common "user clicked the link before logging in" path.
+  // O RPC verifica auth.uid(); falhar cedo evita round-trip no caso comum
+  // de clicar no link antes de estar logado.
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -81,8 +107,14 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const tokenHash = hashInviteToken(token);
+  const quota = await assertRedeemUnderTeamQuota(tokenHash);
+  if (!quota.ok) {
+    return NextResponse.json({ error: quota.error }, { status: 403 });
+  }
+
   const { data: accountId, error } = await supabase.rpc("redeem_invitation", {
-    p_token_hash: hashInviteToken(token),
+    p_token_hash: tokenHash,
   });
 
   if (error) return rpcErrorToResponse(error);

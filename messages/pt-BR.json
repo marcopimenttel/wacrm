@@ -1920,6 +1920,16 @@
       "accountLabel": "Conta: {name}",
       "ctaPlan": "Ir para Plano e cobrança",
       "ctaSettings": "Configurações"
+    },
+    "banner": {
+      "trialDays": "Seu trial termina em {days} dias",
+      "trialOneDay": "Seu trial termina amanhã",
+      "trialEndsToday": "Seu trial termina hoje",
+      "trialDescription": "Assine um plano para não perder o acesso à campanha e ao WhatsApp.",
+      "pastDueTitle": "Pagamento pendente",
+      "pastDueDescription": "Regularize a fatura no Asaas para restaurar o acesso completo.",
+      "cta": "Assinar agora",
+      "dismiss": "Dispensar aviso"
     }
   },
   "Campaign": {
