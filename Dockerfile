@@ -6,10 +6,10 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-# O package-lock é gerado com npm 11+; a imagem node:20 traz npm 10,
-# e `npm ci` falha com "Missing … from lock file" (ex.: @emnapi/*).
-RUN npm install -g npm@11.6.1 \
-  && npm ci
+# Usa `npm install` (não `npm ci`): o lockfile gerado no Windows/npm 11
+# deixa deps opcionais (@emnapi/*) incompletas para Alpine/Linux e o
+# `npm ci` falha no Coolify. `npm install` resolve isso no build.
+RUN npm install --no-audit --no-fund
 
 # ---------------------------------------------------------------
 # Stage 2 — build
