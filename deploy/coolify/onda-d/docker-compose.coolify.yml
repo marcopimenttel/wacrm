@@ -1,0 +1,184 @@
+# ============================================================
+# Coolify "Docker Compose Empty" — cole este YAML no editor
+# Domínio público: https://apicrm.euapoio.cloud → serviço gateway:8000
+# Postgres: resource Coolify wacrm-db (mesmo project / rede coolify)
+# ============================================================
+
+services:
+  gateway:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    expose:
+      - "8000"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /etc/caddy/Caddyfile <<'EOF'
+        {
+        	admin off
+        }
+        :8000 {
+        	handle_path /auth/v1/* {
+        		reverse_proxy auth:9999
+        	}
+        	handle_path /rest/v1/* {
+        		reverse_proxy rest:3000
+        	}
+        	handle_path /realtime/v1/* {
+        		rewrite * /socket{uri}
+        		reverse_proxy realtime:4000
+        	}
+        	handle_path /storage/v1/* {
+        		reverse_proxy storage:5000
+        	}
+        	handle /health {
+        		respond "ok" 200
+        	}
+        	handle {
+        		respond "WACRM API" 404
+        	}
+        }
+        EOF
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    depends_on:
+      - auth
+      - rest
+      - realtime
+      - storage
+    networks:
+      - coolify
+
+  auth:
+    image: supabase/gotrue:v2.177.0
+    restart: unless-stopped
+    depends_on:
+      db-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP:-true}
+      GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM:-true}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-WACRM}
+    networks:
+      - coolify
+
+  rest:
+    image: postgrest/postgrest:v12.2.12
+    restart: unless-stopped
+    depends_on:
+      db-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,storage}
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
+    networks:
+      - coolify
+
+  realtime:
+    image: supabase/realtime:v2.34.47
+    restart: unless-stopped
+    depends_on:
+      db-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      PORT: 4000
+      DB_HOST: ${POSTGRES_HOST}
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY:-supabaserealtime}
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      APP_NAME: realtime
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
+    networks:
+      - coolify
+
+  storage:
+    image: supabase/storage-api:v1.22.7
+    restart: unless-stopped
+    depends_on:
+      rest:
+        condition: service_started
+      db-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: stub
+      GLOBAL_S3_BUCKET: stub
+    volumes:
+      - wacrm_storage:/var/lib/storage
+    networks:
+      - coolify
+
+  db-bootstrap:
+    image: postgres:16-alpine
+    restart: "no"
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGHOST: ${POSTGRES_HOST}
+      PGPORT: ${POSTGRES_PORT:-5432}
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGDATABASE: ${POSTGRES_DB}
+      ROLE_PASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        echo "==> Aguardando Postgres em $$PGHOST..."
+        until pg_isready -h "$$PGHOST" -p "$$PGPORT" -U "$$PGUSER" -d "$$PGDATABASE"; do sleep 2; done
+        echo "==> Baixando bootstrap..."
+        wget -qO /tmp/bootstrap.sql \
+          https://raw.githubusercontent.com/marcopimenttel/wacrm/main/deploy/coolify/onda-d/init/01-bootstrap-roles.sql
+        psql -v ON_ERROR_STOP=0 -f /tmp/bootstrap.sql
+        psql -v ON_ERROR_STOP=0 \
+          -c "ALTER ROLE authenticator WITH PASSWORD '$$ROLE_PASSWORD';" \
+          -c "ALTER ROLE supabase_auth_admin WITH PASSWORD '$$ROLE_PASSWORD';" \
+          -c "ALTER ROLE supabase_storage_admin WITH PASSWORD '$$ROLE_PASSWORD';" \
+          -c "ALTER ROLE supabase_admin WITH PASSWORD '$$ROLE_PASSWORD';"
+        echo "==> Bootstrap ok"
+    networks:
+      - coolify
+
+volumes:
+  wacrm_storage:
+
+networks:
+  coolify:
+    external: true
