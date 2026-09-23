@@ -8,6 +8,19 @@ import {
 } from '@/lib/saas/subscription-access'
 
 export async function middleware(request: NextRequest) {
+  // Produção atrás do proxy Coolify/Traefik: se a conexão original foi HTTP,
+  // força HTTPS (certificado Let's Encrypt no domínio público).
+  const forwardedProto = request.headers.get('x-forwarded-proto')
+  if (
+    process.env.NODE_ENV === 'production' &&
+    forwardedProto === 'http' &&
+    request.headers.get('host')
+  ) {
+    const httpsUrl = request.nextUrl.clone()
+    httpsUrl.protocol = 'https:'
+    return NextResponse.redirect(httpsUrl, 308)
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(

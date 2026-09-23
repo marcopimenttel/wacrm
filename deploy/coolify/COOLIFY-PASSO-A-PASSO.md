@@ -1,20 +1,21 @@
 # Deploy no Coolify (VPS) — WACRM / Meu Candidato
 
 Coolify: `http://168.231.100.18:8000`  
-Repo: `https://github.com/marcopimenttel/wacrm` (branch `main`)
+Repo: `https://github.com/marcopimenttel/wacrm` (branch `main`)  
+Produção: **https://crm.euapoio.cloud** (HTTPS Let's Encrypt — ver [`ONDA-A.md`](./ONDA-A.md))
 
 ## Visão dos recursos
 
-No Coolify você cria **1 Project** e dentro dele **2–3 resources**:
+No Coolify: **1 Project** e estes resources:
 
 | Ordem | Resource | Tipo no Coolify | Função |
 |------:|----------|-----------------|--------|
-| 1 | `wacrm-db` | **PostgreSQL** (database) | Banco na VPS |
-| 2 | `wacrm-app` | **Dockerfile** (GitHub) | Next.js |
-| 3 | (depois) Auth API | Compose / serviço extra | GoTrue+PostgREST — necessário para login sem Supabase Cloud |
+| 1 | `wacrm-db` | **PostgreSQL** | Reservado para Onda D (Auth+DB self-hosted) |
+| 2 | `wacrm` (app) | **Dockerfile** (GitHub) | Next.js em produção |
+| 3 | (Onda D) Auth API | Compose / serviço extra | GoTrue+PostgREST — só então sai do Cloud |
 
-> Enquanto a Auth API self-hosted não existir, o app **não autentica** só com Postgres.  
-> Fase 1: sobe DB + App com build ok. Fase 2: Auth. Ou, temporário, aponta `NEXT_PUBLIC_SUPABASE_*` para um projeto Supabase Cloud só de Auth (não ideal, mas desbloqueia).
+> **Onda A (atual):** app no Coolify + `NEXT_PUBLIC_SUPABASE_*` no **Supabase Cloud** (Auth + dados).  
+> `wacrm-db` fica healthy, mas o runtime do app **não** usa `DATABASE_URL` ainda.
 
 ---
 

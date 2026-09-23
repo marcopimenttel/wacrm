@@ -1,46 +1,46 @@
-# Deploy Coolify — Postgres na VPS (sem Supabase Cloud)
+# Deploy Coolify — WACRM em produção
 
-## Objetivo
+Coolify: `http://168.231.100.18:8000`  
+App público: **https://crm.euapoio.cloud**
 
-Rodar o **WACRM** com **PostgreSQL gerenciado na sua VPS (Coolify)**, sem depender do projeto hospedado em `*.supabase.co`.
+## Arquitetura atual (Onda A)
 
-O código ainda fala HTTP no formato `/auth/v1` e `/rest/v1` (cliente atual). Por isso, na VPS você sobe:
+| Peça | Onde | Notas |
+|------|------|--------|
+| App Next.js | Coolify (`Dockerfile`, porta 3000) | Produção |
+| Auth + Postgres/RLS | **Supabase Cloud** | Mantido até Onda D |
+| `wacrm-db` (Postgres Coolify) | VPS | Provisionado; **não** alimenta o app ainda |
 
-1. **Postgres** (este compose — obrigatório)
-2. **Camada API de autenticação/dados** na mesma VPS (GoTrue + PostgREST + proxy, ou stack Supabase *self-hosted*)
+O código fala HTTP no formato Supabase (`/auth/v1`, `/rest/v1`). Por isso, enquanto não houver GoTrue + PostgREST na VPS, **produção usa Supabase Cloud** para Auth e dados. Detalhes da estabilização: [`ONDA-A.md`](./ONDA-A.md).
 
-O banco de verdade é o Postgres da Coolify; o “Supabase Cloud” fica fora.
+## Variáveis críticas (Coolify → Environment)
 
-## Passo a passo (Coolify)
+Copie de `env.coolify.example` e de `.env.local` (só chaves públicas/service role — nunca commitar secrets):
 
-1. Crie um serviço **PostgreSQL** (ou use o `docker-compose.yml` desta pasta).
-2. Defina as variáveis de `env.coolify.example` no Coolify.
-3. Rode as migrations:
-   - Via serviço `migrate` do compose, **ou**
-   - Na máquina com acesso ao DB:  
-     `DATABASE_URL=postgresql://... node scripts/apply-migrations.mjs`
-4. Aplique a migration `040_saas_commercial.sql` (já incluída na pasta `supabase/migrations`).
-5. Configure o app (`Dockerfile` na raiz) com `NEXT_PUBLIC_SUPABASE_URL` apontando para **sua** API na VPS (não para supabase.co).
-6. Coloque seu e-mail em `PLATFORM_ADMIN_EMAILS`.
+- `NEXT_PUBLIC_SITE_URL=https://crm.euapoio.cloud`
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` → **Cloud**
+- `PLATFORM_ADMIN_EMAILS` → e-mail do dono do SaaS
+- `ENCRYPTION_KEY` → 32+ chars
+- `DATABASE_URL` → opcional agora (útil na Onda D / migrations no `wacrm-db`)
 
-## Migrations
+## Domínio e HTTPS
 
-Todas as SQL em `supabase/migrations/*.sql` são Postgres padrão (com schema `auth` mínimo criado pelo `run-migrations.sh` se GoTrue ainda não existir).
+1. Domains no serviço do app: `https://crm.euapoio.cloud`
+2. Coolify gera Let's Encrypt (portas 80/443 abertas na VPS)
+3. App força HTTPS via Traefik + middleware (`x-forwarded-proto`)
 
-## Desenvolvimento local
+## Migrations (Cloud hoje)
 
-Enquanto a API self-hosted não estiver pronta, você pode continuar com `.env.local` apontando para um projeto temporário — mas o **alvo de produção** é:
+Aplicar `supabase/migrations/*.sql` no projeto Supabase Cloud (SQL Editor ou CLI), incluindo `040_saas_commercial.sql`.
 
-```
-DATABASE_URL → Postgres Coolify
-NEXT_PUBLIC_SUPABASE_URL → API self-hosted na mesma VPS
-```
+Quando for a Onda D, o mesmo runner (`scripts/apply-migrations.mjs` / `run-migrations.sh`) aponta para `DATABASE_URL` do `wacrm-db`.
+
+## Guia passo a passo
+
+Ver [`COOLIFY-PASSO-A-PASSO.md`](./COOLIFY-PASSO-A-PASSO.md).
 
 ## SaaS comercial (040+)
 
-- Status `blocked`
-- Quotas no plano
-- `account_modules` (override)
-- Branding por tenant em `accounts`
-- `platform_settings` (white-label global)
-- `platform_admins` (e-mails no banco)
+- Status `blocked`, quotas, `account_modules`
+- Branding por tenant + `platform_settings`
+- Painel `/platform` só para `PLATFORM_ADMIN_EMAILS`
