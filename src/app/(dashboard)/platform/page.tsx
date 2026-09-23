@@ -7,8 +7,10 @@ import {
   CreditCard,
   Loader2,
   Palette,
+  Pencil,
   Plus,
   Search,
+  Boxes,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
@@ -26,35 +28,25 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  PlanEditDialog,
+  type PlanEditData,
+} from '@/components/platform/plan-edit-dialog';
+import {
+  TenantEditDialog,
+  type TenantEditData,
+} from '@/components/platform/tenant-edit-dialog';
+import { TenantModulesDialog } from '@/components/platform/tenant-modules-dialog';
 
 type Tab = 'tenants' | 'plans' | 'branding';
 
-interface PlatformAccount {
-  id: string;
-  name: string;
+interface PlatformAccount extends TenantEditData {
   slug: string | null;
   subscription_status: string;
   trial_ends_at: string | null;
   created_at: string;
   plan_key: string | null;
   plan_name: string | null;
-  city: string | null;
-  state: string | null;
-}
-
-interface PlanRow {
-  id: string;
-  key: string;
-  name: string;
-  description: string | null;
-  is_active: boolean;
-  price_monthly_brl: number;
-  price_yearly_brl: number;
-  trial_days: number;
-  max_supporters: number | null;
-  max_leaderships: number | null;
-  max_team_members: number | null;
-  modules: string[];
 }
 
 interface BrandingSettings {
@@ -86,12 +78,21 @@ export default function PlatformPage() {
   const { user, loading } = useAuth();
   const [tab, setTab] = useState<Tab>('tenants');
   const [accounts, setAccounts] = useState<PlatformAccount[]>([]);
-  const [plans, setPlans] = useState<PlanRow[]>([]);
+  const [plans, setPlans] = useState<PlanEditData[]>([]);
   const [branding, setBranding] = useState<BrandingSettings | null>(null);
   const [fetching, setFetching] = useState(true);
   const [q, setQ] = useState('');
   const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const [editTenant, setEditTenant] = useState<PlatformAccount | null>(null);
+  const [modulesTenant, setModulesTenant] = useState<PlatformAccount | null>(
+    null,
+  );
+  const [editPlan, setEditPlan] = useState<PlanEditData | null | undefined>(
+    undefined,
+  );
+  // undefined = fechado; null = criar; PlanEditData = editar
 
   const load = useCallback(async () => {
     setFetching(true);
@@ -213,7 +214,9 @@ export default function PlatformPage() {
     return (
       a.name.toLowerCase().includes(s) ||
       (a.slug ?? '').toLowerCase().includes(s) ||
-      (a.city ?? '').toLowerCase().includes(s)
+      (a.city ?? '').toLowerCase().includes(s) ||
+      (a.candidate_ballot_name ?? '').toLowerCase().includes(s) ||
+      (a.cnpj ?? '').toLowerCase().includes(s)
     );
   });
 
@@ -316,6 +319,9 @@ export default function PlatformPage() {
                         <div className="text-xs text-muted-foreground">
                           {a.slug}
                           {a.city ? ` · ${a.city}/${a.state ?? ''}` : ''}
+                          {a.candidate_ballot_name
+                            ? ` · ${a.candidate_ballot_name}`
+                            : ''}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -354,6 +360,24 @@ export default function PlatformPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            disabled={saving}
+                            onClick={() => setEditTenant(a)}
+                            title={t('editTenant')}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            disabled={saving}
+                            onClick={() => setModulesTenant(a)}
+                            title={t('editModules')}
+                          >
+                            <Boxes className="h-3.5 w-3.5" />
+                          </Button>
                           <Button
                             size="xs"
                             variant="outline"
@@ -403,48 +427,67 @@ export default function PlatformPage() {
       ) : null}
 
       {tab === 'plans' ? (
-        <div className="overflow-hidden rounded-xl border border-border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t('planKey')}</TableHead>
-                <TableHead>{t('planName')}</TableHead>
-                <TableHead>{t('planPrice')}</TableHead>
-                <TableHead>{t('planQuotas')}</TableHead>
-                <TableHead>{t('planModules')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {plans.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell className="font-mono text-xs">{p.key}</TableCell>
-                  <TableCell>
-                    {p.name}
-                    {!p.is_active ? (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        ({t('inactive')})
-                      </span>
-                    ) : null}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    R$ {Number(p.price_monthly_brl).toFixed(2)} /{' '}
-                    {t('month')}
-                    <div className="text-xs text-muted-foreground">
-                      R$ {Number(p.price_yearly_brl).toFixed(2)} / {t('year')}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    trial {p.trial_days}d · apo {p.max_supporters ?? '∞'} ·
-                    lid {p.max_leaderships ?? '∞'} · team{' '}
-                    {p.max_team_members ?? '∞'}
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
-                    {(p.modules ?? []).join(', ') || '—'}
-                  </TableCell>
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button onClick={() => setEditPlan(null)}>
+              <Plus className="h-4 w-4" />
+              {t('createPlan')}
+            </Button>
+          </div>
+          <div className="overflow-hidden rounded-xl border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('planKey')}</TableHead>
+                  <TableHead>{t('planName')}</TableHead>
+                  <TableHead>{t('planPrice')}</TableHead>
+                  <TableHead>{t('planQuotas')}</TableHead>
+                  <TableHead>{t('planModules')}</TableHead>
+                  <TableHead className="w-24">{t('colActions')}</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {plans.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-mono text-xs">{p.key}</TableCell>
+                    <TableCell>
+                      {p.name}
+                      {!p.is_active ? (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          ({t('inactive')})
+                        </span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      R$ {Number(p.price_monthly_brl).toFixed(2)} /{' '}
+                      {t('month')}
+                      <div className="text-xs text-muted-foreground">
+                        R$ {Number(p.price_yearly_brl).toFixed(2)} / {t('year')}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      trial {p.trial_days}d · apo {p.max_supporters ?? '∞'} ·
+                      lid {p.max_leaderships ?? '∞'} · team{' '}
+                      {p.max_team_members ?? '∞'}
+                    </TableCell>
+                    <TableCell className="max-w-xs truncate text-xs text-muted-foreground">
+                      {(p.modules ?? []).join(', ') || '—'}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => setEditPlan(p)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        {t('editPlan')}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       ) : null}
 
@@ -480,6 +523,37 @@ export default function PlatformPage() {
           </Button>
         </div>
       ) : null}
+
+      <TenantEditDialog
+        open={!!editTenant}
+        onOpenChange={(o) => {
+          if (!o) setEditTenant(null);
+        }}
+        tenant={editTenant}
+        onSaved={load}
+      />
+
+      <TenantModulesDialog
+        open={!!modulesTenant}
+        onOpenChange={(o) => {
+          if (!o) setModulesTenant(null);
+        }}
+        accountId={modulesTenant?.id ?? null}
+        accountName={modulesTenant?.name ?? ''}
+        planModules={
+          plans.find((p) => p.key === modulesTenant?.plan_key)?.modules ?? []
+        }
+        onSaved={load}
+      />
+
+      <PlanEditDialog
+        open={editPlan !== undefined}
+        onOpenChange={(o) => {
+          if (!o) setEditPlan(undefined);
+        }}
+        plan={editPlan === undefined ? null : editPlan}
+        onSaved={load}
+      />
     </div>
   );
 }

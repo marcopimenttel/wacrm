@@ -19,7 +19,7 @@ export async function GET() {
     const { data, error } = await admin
       .from("accounts")
       .select(
-        "id, name, slug, owner_user_id, subscription_status, trial_ends_at, created_at, plan_id, cnpj, contact_phone, city, state, primary_color, logo_url, candidate_ballot_name, plans(key, name)",
+        "id, name, slug, owner_user_id, subscription_status, trial_ends_at, created_at, plan_id, cnpj, contact_phone, cep, address, address_number, neighborhood, city, state, primary_color, logo_url, favicon_url, candidate_ballot_name, candidate_full_name, candidate_party, candidate_uf, candidate_office, candidate_number, notes_internal, billing_email, billing_cpf_cnpj, plans(key, name)",
       )
       .order("created_at", { ascending: false })
       .limit(500);
@@ -42,11 +42,24 @@ export async function GET() {
         plan_name: plan?.name ?? null,
         cnpj: row.cnpj,
         contact_phone: row.contact_phone,
+        cep: row.cep,
+        address: row.address,
+        address_number: row.address_number,
+        neighborhood: row.neighborhood,
         city: row.city,
         state: row.state,
         primary_color: row.primary_color,
         logo_url: row.logo_url,
+        favicon_url: row.favicon_url,
         candidate_ballot_name: row.candidate_ballot_name,
+        candidate_full_name: row.candidate_full_name,
+        candidate_party: row.candidate_party,
+        candidate_uf: row.candidate_uf,
+        candidate_office: row.candidate_office,
+        candidate_number: row.candidate_number,
+        notes_internal: row.notes_internal,
+        billing_email: row.billing_email,
+        billing_cpf_cnpj: row.billing_cpf_cnpj,
       };
     });
 

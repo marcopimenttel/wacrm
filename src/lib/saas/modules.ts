@@ -32,6 +32,12 @@ export const CAMPAIGN_MODULES = [
   "campaign.tse",
 ] as const;
 
+/** Catálogo completo para UI de planos / overrides. */
+export const ALL_MODULE_KEYS = [
+  ...WHATSAPP_MODULES,
+  ...CAMPAIGN_MODULES,
+] as const;
+
 export type WhatsappModule = (typeof WHATSAPP_MODULES)[number];
 export type CampaignModule = (typeof CAMPAIGN_MODULES)[number];
 export type ModuleKey = WhatsappModule | CampaignModule | (string & {});
