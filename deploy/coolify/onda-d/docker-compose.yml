@@ -1,0 +1,184 @@
+# ============================================================
+# Onda D — API Supabase-compat na VPS (Coolify Docker Compose)
+# ============================================================
+# NÃO inclui o Postgres: usa o resource Coolify `wacrm-db`
+# (imagem supabase/postgres recomendada).
+#
+# Domínio sugerido: https://api.crm.euapoio.cloud → porta 8000 (Caddy)
+# App: NEXT_PUBLIC_SUPABASE_URL=https://api.crm.euapoio.cloud
+#
+# Rede: no Coolify, coloque este compose no MESMO project do wacrm-db
+# para o hostname interno `wacrm-db` resolver.
+# ============================================================
+
+name: wacrm-api
+
+services:
+  gateway:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_HOST_PORT:-8000}:8000"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - auth
+      - rest
+      - realtime
+      - storage
+    networks:
+      - wacrm
+
+  auth:
+    image: supabase/gotrue:v2.177.0
+    restart: unless-stopped
+    depends_on:
+      db-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-wacrm-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      GOTRUE_SITE_URL: ${SITE_URL:-https://crm.euapoio.cloud}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-}
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP:-true}
+      GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM:-true}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-WACRM}
+    networks:
+      - wacrm
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9999/health",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  rest:
+    image: postgrest/postgrest:v12.2.12
+    restart: unless-stopped
+    depends_on:
+      db-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-wacrm-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,storage,graphql_public}
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
+    networks:
+      - wacrm
+
+  realtime:
+    image: supabase/realtime:v2.34.47
+    restart: unless-stopped
+    depends_on:
+      db-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      PORT: 4000
+      DB_HOST: ${POSTGRES_HOST:-wacrm-db}
+      DB_PORT: ${POSTGRES_PORT:-5432}
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB:-postgres}
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY:-supabaserealtime}
+      API_JWT_SECRET: ${JWT_SECRET}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?defina SECRET_KEY_BASE com 64+ chars}
+      APP_NAME: realtime
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
+    networks:
+      - wacrm
+
+  storage:
+    image: supabase/storage-api:v1.22.7
+    restart: unless-stopped
+    depends_on:
+      rest:
+        condition: service_started
+      db-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-wacrm-db}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-postgres}
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: stub
+      GLOBAL_S3_BUCKET: stub
+    volumes:
+      - wacrm_storage:/var/lib/storage
+    networks:
+      - wacrm
+
+  # One-shot: aplica bootstrap de roles (precisa de psql + senha)
+  db-bootstrap:
+    image: postgres:16-alpine
+    restart: "no"
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGHOST: ${POSTGRES_HOST:-wacrm-db}
+      PGPORT: ${POSTGRES_PORT:-5432}
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGDATABASE: ${POSTGRES_DB:-postgres}
+      ROLE_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./init:/init:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        echo "==> Aguardando Postgres em $$PGHOST..."
+        until pg_isready -h "$$PGHOST" -p "$$PGPORT" -U "$$PGUSER" -d "$$PGDATABASE"; do sleep 2; done
+        echo "==> Bootstrap roles/schemas..."
+        psql -v ON_ERROR_STOP=0 -f /init/01-bootstrap-roles.sql
+        echo "==> Alinhando senhas dos roles..."
+        psql -v ON_ERROR_STOP=0 \
+          -c "ALTER ROLE authenticator WITH PASSWORD '$$ROLE_PASSWORD';" \
+          -c "ALTER ROLE supabase_auth_admin WITH PASSWORD '$$ROLE_PASSWORD';" \
+          -c "ALTER ROLE supabase_storage_admin WITH PASSWORD '$$ROLE_PASSWORD';" \
+          -c "ALTER ROLE supabase_admin WITH PASSWORD '$$ROLE_PASSWORD';"
+        echo "==> Bootstrap ok"
+    networks:
+      - wacrm
+
+volumes:
+  wacrm_storage:
+
+networks:
+  wacrm:
+    driver: bridge
+    # Se o Coolify não unir automaticamente ao DB, descomente e use o
+    # nome da rede do resource wacrm-db (Coolify → Network):
+    # external: true
+    # name: coolify

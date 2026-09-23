@@ -29,21 +29,43 @@ const files = fs
 
 console.log(`Aplicando ${files.length} migrations em ${databaseUrl.replace(/:[^:@]+@/, ":***@")}`);
 
-// Bootstrap extensions + auth stub
-execFileSync(
-  "psql",
-  [
-    databaseUrl,
-    "-v",
-    "ON_ERROR_STOP=1",
-    "-c",
-    `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-     CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-     CREATE SCHEMA IF NOT EXISTS auth;
-     CREATE TABLE IF NOT EXISTS auth.users (id UUID PRIMARY KEY, email TEXT);`,
-  ],
-  { stdio: "inherit" },
+const bootstrapSql = path.join(
+  root,
+  "deploy",
+  "coolify",
+  "onda-d",
+  "init",
+  "01-bootstrap-roles.sql",
 );
+
+// Bootstrap extensions + roles/schemas (Onda D) ou stub mínimo
+if (fs.existsSync(bootstrapSql)) {
+  console.log("--> bootstrap Onda D (roles/schemas)");
+  try {
+    execFileSync(
+      "psql",
+      [databaseUrl, "-v", "ON_ERROR_STOP=0", "-f", bootstrapSql],
+      { stdio: "inherit" },
+    );
+  } catch {
+    console.warn("AVISO: bootstrap parcial (roles podem já existir).");
+  }
+} else {
+  execFileSync(
+    "psql",
+    [
+      databaseUrl,
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-c",
+      `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+       CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+       CREATE SCHEMA IF NOT EXISTS auth;
+       CREATE TABLE IF NOT EXISTS auth.users (id UUID PRIMARY KEY, email TEXT);`,
+    ],
+    { stdio: "inherit" },
+  );
+}
 
 for (const file of files) {
   const full = path.join(migrationsDir, file);

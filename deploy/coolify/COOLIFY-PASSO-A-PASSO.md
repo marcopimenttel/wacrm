@@ -14,8 +14,10 @@ No Coolify: **1 Project** e estes resources:
 | 2 | `wacrm` (app) | **Dockerfile** (GitHub) | Next.js em produção |
 | 3 | (Onda D) Auth API | Compose / serviço extra | GoTrue+PostgREST — só então sai do Cloud |
 
-> **Onda A (atual):** app no Coolify + `NEXT_PUBLIC_SUPABASE_*` no **Supabase Cloud** (Auth + dados).  
+> **Onda A–C (atual):** app no Coolify + `NEXT_PUBLIC_SUPABASE_*` no **Supabase Cloud**.  
 > `wacrm-db` fica healthy, mas o runtime do app **não** usa `DATABASE_URL` ainda.
+>
+> **Onda D:** compose em `deploy/coolify/onda-d` (GoTrue+PostgREST+Realtime+Storage) + domínio `api.crm.euapoio.cloud`. Guia: [`onda-d/ONDA-D.md`](./onda-d/ONDA-D.md).
 
 ---
 
@@ -142,10 +144,16 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ---
 
-## Ordem recomendada agora (na tela que você abriu)
+## Onda D (sair do Cloud) — na tela do Coolify
 
-1. **+ Add** → criar project **WACRM**
-2. Dentro dele → **+ Add Resource** → PostgreSQL
-3. Depois → **+ Add Resource** → Application (GitHub + Dockerfile)
+1. DNS: `api.crm.euapoio.cloud` → IP da VPS
+2. `node scripts/generate-supabase-keys.mjs` (guarde as chaves)
+3. **+ Add Resource** → Docker Compose → pasta `deploy/coolify/onda-d`
+4. Env de `onda-d/.env.example` + senha do `wacrm-db`
+5. Domain HTTPS na porta **8000**
+6. Validar `/health` e `/auth/v1/health`
+7. Export Cloud → restore VPS (se houver dados)
+8. Trocar `NEXT_PUBLIC_SUPABASE_*` no app + **Rebuild**
 
-Quando o project e o Postgres estiverem criados, me manda print das variáveis do DB (sem a senha) que eu te monto o `DATABASE_URL` e a lista exata de env do app.
+Guia completo: [`onda-d/ONDA-D.md`](./onda-d/ONDA-D.md).
+

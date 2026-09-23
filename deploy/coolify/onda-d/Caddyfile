@@ -1,0 +1,32 @@
+# Gateway Caddy — API estilo Supabase (/auth/v1, /rest/v1, /realtime/v1, /storage/v1)
+{
+	admin off
+}
+
+:8000 {
+	handle_path /auth/v1/* {
+		reverse_proxy auth:9999
+	}
+
+	handle_path /rest/v1/* {
+		reverse_proxy rest:3000
+	}
+
+	# Cliente JS usa /realtime/v1/websocket → Phoenix em /socket/websocket
+	handle_path /realtime/v1/* {
+		rewrite * /socket{uri}
+		reverse_proxy realtime:4000
+	}
+
+	handle_path /storage/v1/* {
+		reverse_proxy storage:5000
+	}
+
+	handle /health {
+		respond "ok" 200
+	}
+
+	handle {
+		respond "WACRM API — /auth/v1 /rest/v1 /realtime/v1 /storage/v1" 404
+	}
+}

@@ -3,44 +3,46 @@
 Coolify: `http://168.231.100.18:8000`  
 App público: **https://crm.euapoio.cloud**
 
-## Arquitetura atual (Onda A)
+## Arquitetura
 
-| Peça | Onde | Notas |
-|------|------|--------|
-| App Next.js | Coolify (`Dockerfile`, porta 3000) | Produção |
-| Auth + Postgres/RLS | **Supabase Cloud** | Mantido até Onda D |
-| `wacrm-db` (Postgres Coolify) | VPS | Provisionado; **não** alimenta o app ainda |
+| Fase | App | Auth + dados |
+|------|-----|----------------|
+| **Atual (A–C)** | Coolify | Supabase Cloud |
+| **Alvo Onda D** | Coolify | VPS (`wacrm-db` + compose `onda-d`) |
 
-O código fala HTTP no formato Supabase (`/auth/v1`, `/rest/v1`). Por isso, enquanto não houver GoTrue + PostgREST na VPS, **produção usa Supabase Cloud** para Auth e dados. Detalhes da estabilização: [`ONDA-A.md`](./ONDA-A.md).
+Detalhes do cutover: [`onda-d/ONDA-D.md`](./onda-d/ONDA-D.md).
 
-## Variáveis críticas (Coolify → Environment)
-
-Copie de `env.coolify.example` e de `.env.local` (só chaves públicas/service role — nunca commitar secrets):
+## Variáveis do app (enquanto Cloud)
 
 - `NEXT_PUBLIC_SITE_URL=https://crm.euapoio.cloud`
-- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` → **Cloud**
-- `PLATFORM_ADMIN_EMAILS` → e-mail do dono do SaaS
-- `ENCRYPTION_KEY` → 32+ chars
-- `DATABASE_URL` → opcional agora (útil na Onda D / migrations no `wacrm-db`)
+- `NEXT_PUBLIC_SUPABASE_URL` / anon / service role → **Cloud**
+- `PLATFORM_ADMIN_EMAILS`
+- `ENCRYPTION_KEY`
+
+## Após cutover Onda D
+
+```text
+NEXT_PUBLIC_SUPABASE_URL=https://api.crm.euapoio.cloud
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY gerado>
+SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY gerado>
+```
+
+Gere chaves: `node scripts/generate-supabase-keys.mjs`  
+**Rebuild** do app após mudar `NEXT_PUBLIC_*`.
 
 ## Domínio e HTTPS
 
-1. Domains no serviço do app: `https://crm.euapoio.cloud`
-2. Coolify gera Let's Encrypt (portas 80/443 abertas na VPS)
-3. App força HTTPS via Traefik + middleware (`x-forwarded-proto`)
+1. App: `https://crm.euapoio.cloud`
+2. API (Onda D): `https://api.crm.euapoio.cloud` → compose porta 8000
 
-## Migrations (Cloud hoje)
+## Migrations
 
-Aplicar `supabase/migrations/*.sql` no projeto Supabase Cloud (SQL Editor ou CLI), incluindo `040_saas_commercial.sql`.
+- Cloud (hoje): SQL Editor / CLI
+- VPS: `DATABASE_URL=... node scripts/apply-migrations.mjs` + bootstrap em `onda-d/init/`
 
-Quando for a Onda D, o mesmo runner (`scripts/apply-migrations.mjs` / `run-migrations.sh`) aponta para `DATABASE_URL` do `wacrm-db`.
+## Ondas
 
-## Guia passo a passo
-
-Ver [`COOLIFY-PASSO-A-PASSO.md`](./COOLIFY-PASSO-A-PASSO.md).
-
-## SaaS comercial (040+)
-
-- Status `blocked`, quotas, `account_modules`
-- Branding por tenant + `platform_settings`
-- Painel `/platform` só para `PLATFORM_ADMIN_EMAILS`
+- [ONDA-A.md](./ONDA-A.md) — HTTPS + híbrido
+- [ONDA-B.md](./ONDA-B.md) — comercial residual
+- [ONDA-C.md](./ONDA-C.md) — painel dono
+- [onda-d/ONDA-D.md](./onda-d/ONDA-D.md) — self-hosted Auth/DB
