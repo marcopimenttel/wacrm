@@ -1,4 +1,4 @@
-# Onda D — Auth + dados self-hosted na VPS
+﻿# Onda D — Auth + dados self-hosted na VPS
 
 ## Objetivo
 
@@ -12,14 +12,14 @@ Sair do **Supabase Cloud**: Auth, REST/RLS, Realtime e Storage passam a rodar na
 |------|------------------|-----|
 | App Next.js | `wacrm` (já existe) | https://crm.euapoio.cloud |
 | Postgres | `wacrm-db` (imagem **supabase/postgres**) | interno |
-| API gateway | compose `deploy/coolify/onda-d` | https://api.crm.euapoio.cloud |
+| API gateway | compose `deploy/coolify/onda-d` | https://apicrm.euapoio.cloud |
 
 O cliente JS continua falando `/auth/v1`, `/rest/v1`, `/realtime/v1`, `/storage/v1` — só muda o host.
 
 ## Pré-requisitos
 
 1. `wacrm-db` healthy com imagem **supabase/postgres** (não Postgres “vanilla”, se possível).
-2. DNS: `api.crm.euapoio.cloud` → IP da VPS (`168.231.100.18`).
+2. DNS: `apicrm.euapoio.cloud` → IP da VPS (`168.231.100.18`).
 3. Node local com `pg_dump`/`psql` se for migrar dados do Cloud.
 
 ## Passo a passo (Coolify)
@@ -41,7 +41,7 @@ Guarde `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY`, `SECRET_KEY_BASE`.
 3. Compose file: `docker-compose.yml`
 4. Cole as variáveis de `.env.example` (com senha real do `wacrm-db`)
 5. Garanta que o compose está na **mesma rede** do `wacrm-db` (mesmo project Coolify costuma bastar; senão use rede `coolify` external)
-6. Domains: `https://api.crm.euapoio.cloud` na porta **8000** (Caddy)
+6. Domains: `https://apicrm.euapoio.cloud` na porta **8000** (Caddy)
 7. Deploy
 
 ### 3. Bootstrap + migrations no DB
@@ -72,11 +72,11 @@ Arquivos de Storage (avatars/mídia) não vêm no dump — sincronize o bucket d
 ### 5. Validar API (antes de trocar o app)
 
 ```bash
-curl -s https://api.crm.euapoio.cloud/health
-curl -s https://api.crm.euapoio.cloud/auth/v1/health
+curl -s https://apicrm.euapoio.cloud/health
+curl -s https://apicrm.euapoio.cloud/auth/v1/health
 # REST (precisa apikey):
 curl -s -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" \
-  https://api.crm.euapoio.cloud/rest/v1/plans?select=key&limit=1
+  https://apicrm.euapoio.cloud/rest/v1/plans?select=key&limit=1
 ```
 
 Crie um usuário de teste via signup/login na API nova.
@@ -86,7 +86,7 @@ Crie um usuário de teste via signup/login na API nova.
 No Coolify → app `wacrm` → Environment:
 
 ```text
-NEXT_PUBLIC_SUPABASE_URL=https://api.crm.euapoio.cloud
+NEXT_PUBLIC_SUPABASE_URL=https://apicrm.euapoio.cloud
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY gerado>
 SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY gerado>
 ```

@@ -1,4 +1,4 @@
-# Deploy Coolify — WACRM em produção
+﻿# Deploy Coolify — WACRM em produção
 
 Coolify: `http://168.231.100.18:8000`  
 App público: **https://crm.euapoio.cloud**
@@ -22,7 +22,7 @@ Detalhes do cutover: [`onda-d/ONDA-D.md`](./onda-d/ONDA-D.md).
 ## Após cutover Onda D
 
 ```text
-NEXT_PUBLIC_SUPABASE_URL=https://api.crm.euapoio.cloud
+NEXT_PUBLIC_SUPABASE_URL=https://apicrm.euapoio.cloud
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY gerado>
 SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY gerado>
 ```
@@ -33,7 +33,7 @@ Gere chaves: `node scripts/generate-supabase-keys.mjs`
 ## Domínio e HTTPS
 
 1. App: `https://crm.euapoio.cloud`
-2. API (Onda D): `https://api.crm.euapoio.cloud` → compose porta 8000
+2. API (Onda D): `https://apicrm.euapoio.cloud` → compose porta 8000
 
 ## Migrations
 

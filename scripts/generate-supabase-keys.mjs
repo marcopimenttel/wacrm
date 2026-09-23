@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Gera JWT_SECRET + ANON_KEY + SERVICE_ROLE_KEY (HS256) para stack self-hosted.
  *
  * Uso:
@@ -59,7 +59,7 @@ SERVICE_ROLE_KEY=${serviceRoleKey}
 SECRET_KEY_BASE=${secretKeyBase}
 
 # App (após API no ar):
-NEXT_PUBLIC_SUPABASE_URL=https://api.crm.euapoio.cloud
+NEXT_PUBLIC_SUPABASE_URL=https://apicrm.euapoio.cloud
 NEXT_PUBLIC_SUPABASE_ANON_KEY=${anonKey}
 SUPABASE_SERVICE_ROLE_KEY=${serviceRoleKey}
 `.trim());

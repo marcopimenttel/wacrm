@@ -1,4 +1,4 @@
-# Deploy no Coolify (VPS) — WACRM / Meu Candidato
+﻿# Deploy no Coolify (VPS) — WACRM / Meu Candidato
 
 Coolify: `http://168.231.100.18:8000`  
 Repo: `https://github.com/marcopimenttel/wacrm` (branch `main`)  
@@ -17,7 +17,7 @@ No Coolify: **1 Project** e estes resources:
 > **Onda A–C (atual):** app no Coolify + `NEXT_PUBLIC_SUPABASE_*` no **Supabase Cloud**.  
 > `wacrm-db` fica healthy, mas o runtime do app **não** usa `DATABASE_URL` ainda.
 >
-> **Onda D:** compose em `deploy/coolify/onda-d` (GoTrue+PostgREST+Realtime+Storage) + domínio `api.crm.euapoio.cloud`. Guia: [`onda-d/ONDA-D.md`](./onda-d/ONDA-D.md).
+> **Onda D:** compose em `deploy/coolify/onda-d` (GoTrue+PostgREST+Realtime+Storage) + domínio `apicrm.euapoio.cloud`. Guia: [`onda-d/ONDA-D.md`](./onda-d/ONDA-D.md).
 
 ---
 
@@ -146,7 +146,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ## Onda D (sair do Cloud) — na tela do Coolify
 
-1. DNS: `api.crm.euapoio.cloud` → IP da VPS
+1. DNS: `apicrm.euapoio.cloud` → IP da VPS
 2. `node scripts/generate-supabase-keys.mjs` (guarde as chaves)
 3. **+ Add Resource** → Docker Compose → pasta `deploy/coolify/onda-d`
 4. Env de `onda-d/.env.example` + senha do `wacrm-db`

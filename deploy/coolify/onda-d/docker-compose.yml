@@ -1,11 +1,11 @@
-# ============================================================
+﻿# ============================================================
 # Onda D — API Supabase-compat na VPS (Coolify Docker Compose)
 # ============================================================
 # NÃO inclui o Postgres: usa o resource Coolify `wacrm-db`
 # (imagem supabase/postgres recomendada).
 #
-# Domínio sugerido: https://api.crm.euapoio.cloud → porta 8000 (Caddy)
-# App: NEXT_PUBLIC_SUPABASE_URL=https://api.crm.euapoio.cloud
+# Domínio sugerido: https://apicrm.euapoio.cloud → porta 8000 (Caddy)
+# App: NEXT_PUBLIC_SUPABASE_URL=https://apicrm.euapoio.cloud
 #
 # Rede: no Coolify, coloque este compose no MESMO project do wacrm-db
 # para o hostname interno `wacrm-db` resolver.
