@@ -46,10 +46,11 @@ GRANT anon TO authenticator;
 GRANT authenticated TO authenticator;
 GRANT service_role TO authenticator;
 
--- Schema auth (GoTrue migra o restante)
-CREATE SCHEMA IF NOT EXISTS auth AUTHORIZATION supabase_auth_admin;
-GRANT ALL ON SCHEMA auth TO supabase_auth_admin;
-GRANT USAGE ON SCHEMA auth TO postgres, anon, authenticated, service_role;
+-- Schema auth (GoTrue migra o restante — stack Coolify conecta como postgres)
+CREATE SCHEMA IF NOT EXISTS auth;
+ALTER SCHEMA auth OWNER TO postgres;
+GRANT ALL ON SCHEMA auth TO postgres, supabase_auth_admin;
+GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 
 -- Funções mínimas usadas pelas policies do WACRM (GoTrue/Supabase as substituem)
 CREATE OR REPLACE FUNCTION auth.uid()
@@ -74,10 +75,14 @@ AS $$
   )::text;
 $$;
 
--- Schema storage (Storage API migra tabelas)
-CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_storage_admin;
-GRANT ALL ON SCHEMA storage TO supabase_storage_admin;
-GRANT USAGE ON SCHEMA storage TO postgres, anon, authenticated, service_role;
+-- Schema storage (Storage API migra tabelas — conecta como postgres)
+CREATE SCHEMA IF NOT EXISTS storage;
+ALTER SCHEMA storage OWNER TO postgres;
+GRANT ALL ON SCHEMA storage TO postgres, supabase_storage_admin;
+GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
+
+CREATE SCHEMA IF NOT EXISTS _realtime;
+ALTER SCHEMA _realtime OWNER TO postgres;
 
 -- Publicação realtime (migrations WACRM fazem ADD TABLE)
 DO $$
