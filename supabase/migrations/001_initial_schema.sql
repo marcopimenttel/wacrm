@@ -4,8 +4,23 @@
 -- for policies/triggers (Postgres has no CREATE POLICY IF NOT EXISTS).
 -- ============================================================
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Enable UUID extension (supabase/postgres pode bloquear pg_read_file no hook)
+DO $$
+BEGIN
+  CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE NOTICE 'uuid-ossp skip: %', SQLERRM;
+END $$;
+
+-- Garante a função usada no schema (fallback se a extension falhou)
+CREATE OR REPLACE FUNCTION public.uuid_generate_v4()
+RETURNS uuid
+LANGUAGE sql
+VOLATILE
+AS $$
+  SELECT gen_random_uuid();
+$$;
 
 -- ============================================================
 -- PROFILES

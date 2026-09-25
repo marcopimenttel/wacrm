@@ -1,6 +1,8 @@
 #!/bin/sh
 # Aplica bootstrap + migrations no Postgres (uso via Docker)
 URL="$1"
+echo "==> fix uuid"
+psql "$URL" -v ON_ERROR_STOP=0 -f /work/deploy/coolify/onda-d/init/00-fix-uuid.sql || true
 echo "==> bootstrap"
 psql "$URL" -v ON_ERROR_STOP=0 -f /work/deploy/coolify/onda-d/init/01-bootstrap-roles.sql || true
 for f in /work/supabase/migrations/*.sql; do
