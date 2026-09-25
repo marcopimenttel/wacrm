@@ -1,7 +1,7 @@
 # ============================================================
 # Coolify "Docker Compose Empty" — cole este YAML no editor
-# Domínio público: https://apicrm.euapoio.cloud → serviço gateway:8000
-# Postgres: resource Coolify wacrm-db (mesmo project / rede coolify)
+# Domínio: https://apicrm.euapoio.cloud → gateway:8000
+# DB: wacrm-db na rede coolify (POSTGRES_HOST = id interno)
 # ============================================================
 
 services:
@@ -51,15 +51,13 @@ services:
   auth:
     image: supabase/gotrue:v2.177.0
     restart: unless-stopped
-    depends_on:
-      db-bootstrap:
-        condition: service_completed_successfully
     environment:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: 9999
       API_EXTERNAL_URL: ${API_EXTERNAL_URL}
       GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
+      # User postgres (superuser do Coolify) — evita depender de bootstrap de roles
+      GOTRUE_DB_DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}?search_path=auth
       GOTRUE_SITE_URL: ${SITE_URL}
       GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
       GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
@@ -82,11 +80,8 @@ services:
   rest:
     image: postgrest/postgrest:v12.2.12
     restart: unless-stopped
-    depends_on:
-      db-bootstrap:
-        condition: service_completed_successfully
     environment:
-      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
+      PGRST_DB_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
       PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,storage}
       PGRST_DB_ANON_ROLE: anon
       PGRST_JWT_SECRET: ${JWT_SECRET}
@@ -99,14 +94,11 @@ services:
   realtime:
     image: supabase/realtime:v2.34.47
     restart: unless-stopped
-    depends_on:
-      db-bootstrap:
-        condition: service_completed_successfully
     environment:
       PORT: 4000
       DB_HOST: ${POSTGRES_HOST}
       DB_PORT: ${POSTGRES_PORT:-5432}
-      DB_USER: supabase_admin
+      DB_USER: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: ${POSTGRES_DB}
       DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
@@ -126,16 +118,13 @@ services:
     image: supabase/storage-api:v1.22.7
     restart: unless-stopped
     depends_on:
-      rest:
-        condition: service_started
-      db-bootstrap:
-        condition: service_completed_successfully
+      - rest
     environment:
       ANON_KEY: ${ANON_KEY}
       SERVICE_KEY: ${SERVICE_ROLE_KEY}
       POSTGREST_URL: http://rest:3000
       PGRST_JWT_SECRET: ${JWT_SECRET}
-      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
       FILE_SIZE_LIMIT: 52428800
       STORAGE_BACKEND: file
       FILE_STORAGE_BACKEND_PATH: /var/lib/storage
@@ -144,60 +133,6 @@ services:
       GLOBAL_S3_BUCKET: stub
     volumes:
       - wacrm_storage:/var/lib/storage
-    networks:
-      - coolify
-
-  db-bootstrap:
-    image: postgres:16-alpine
-    restart: "no"
-    environment:
-      PGPASSWORD: ${POSTGRES_PASSWORD}
-      PGHOST: ${POSTGRES_HOST}
-      PGPORT: ${POSTGRES_PORT:-5432}
-      PGUSER: ${POSTGRES_USER:-postgres}
-      PGDATABASE: ${POSTGRES_DB}
-      ROLE_PASSWORD: ${POSTGRES_PASSWORD}
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        # Nao use set -e: psql pode retornar !=0 em ALTER se role nao existir
-        echo "==> Host=[$$PGHOST] db=[$$PGDATABASE] user=[$$PGUSER] port=[$$PGPORT]"
-        if [ -z "$$PGHOST" ] || [ -z "$$PGPASSWORD" ]; then
-          echo "ERRO: POSTGRES_HOST ou POSTGRES_PASSWORD vazios"
-          exit 1
-        fi
-        echo "==> Aguardando Postgres..."
-        ok=0
-        n=0
-        while [ "$$n" -lt 45 ]; do
-          n=$$((n+1))
-          if pg_isready -h "$$PGHOST" -p "$$PGPORT" -U "$$PGUSER" -d "$$PGDATABASE"; then
-            ok=1
-            break
-          fi
-          sleep 2
-        done
-        if [ "$$ok" -ne 1 ]; then
-          echo "ERRO: nao conectou em $$PGHOST:$$PGPORT — confira POSTGRES_HOST (deve ser o id interno do wacrm-db, ex. lu1fp0hmhzgn5gusipz4fx2r) e Connect To Predefined Network"
-          exit 1
-        fi
-        echo "==> Teste SELECT 1..."
-        if ! psql -v ON_ERROR_STOP=1 -c "SELECT 1 AS ok;"; then
-          echo "ERRO: autenticacao falhou (user/senha/db)"
-          exit 1
-        fi
-        echo "==> Alinhando senhas dos roles Supabase (imagem ja traz os roles)..."
-        psql -v ON_ERROR_STOP=0 -c "ALTER ROLE authenticator WITH PASSWORD '$$ROLE_PASSWORD';" || true
-        psql -v ON_ERROR_STOP=0 -c "ALTER ROLE supabase_auth_admin WITH PASSWORD '$$ROLE_PASSWORD';" || true
-        psql -v ON_ERROR_STOP=0 -c "ALTER ROLE supabase_storage_admin WITH PASSWORD '$$ROLE_PASSWORD';" || true
-        psql -v ON_ERROR_STOP=0 -c "ALTER ROLE supabase_admin WITH PASSWORD '$$ROLE_PASSWORD';" || true
-        psql -v ON_ERROR_STOP=0 -c "GRANT anon TO authenticator;" || true
-        psql -v ON_ERROR_STOP=0 -c "GRANT authenticated TO authenticator;" || true
-        psql -v ON_ERROR_STOP=0 -c "GRANT service_role TO authenticator;" || true
-        echo "==> Roles presentes:"
-        psql -c "SELECT rolname FROM pg_roles WHERE rolname IN ('anon','authenticated','service_role','authenticator','supabase_auth_admin','supabase_storage_admin','supabase_admin') ORDER BY 1;" || true
-        echo "==> Bootstrap ok"
-        exit 0
     networks:
       - coolify
 
