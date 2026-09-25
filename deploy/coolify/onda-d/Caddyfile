@@ -5,6 +5,21 @@
 }
 
 :80 {
+	@preflight {
+		method OPTIONS
+	}
+	handle @preflight {
+		header Access-Control-Allow-Origin "{header.origin}"
+		header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+		header Access-Control-Allow-Headers "authorization, apikey, content-type, x-client-info, x-supabase-api-version, accept, prefer, x-supabase-auth"
+		header Access-Control-Allow-Credentials "true"
+		header Access-Control-Max-Age "86400"
+		respond 204
+	}
+	header Access-Control-Allow-Origin "{header.origin}"
+	header Access-Control-Allow-Credentials "true"
+	header Access-Control-Expose-Headers "content-range, x-supabase-api-version"
+
 	handle_path /auth/v1/* {
 		reverse_proxy auth:9999
 	}
