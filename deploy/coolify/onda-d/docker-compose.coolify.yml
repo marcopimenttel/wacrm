@@ -1,9 +1,11 @@
 # ============================================================
 # Coolify "Docker Compose Empty" — cole este YAML no editor
-# Domínio: https://apicrm.euapoio.cloud → gateway:80 (porta padrão Coolify/Traefik)
-# DB: wacrm-db na rede coolify
-#   POSTGRES_HOST = id interno (ex. lu1fp0hmhzgn5gusipz4fx2r)
-#   POSTGRES_DB   = wacrm  (Initial Database do Coolify)
+# Domínio: https://apicrm.euapoio.cloud → gateway:80
+# Obrigatório no Environment:
+#   DATABASE_URL=postgres://postgres:SENHA@HOST_INTERNO:5432/wacrm
+#   (copie a Postgres URL internal do wacrm-db; DB = wacrm)
+#   JWT_SECRET, ANON_KEY, SERVICE_ROLE_KEY, SECRET_KEY_BASE
+#   SITE_URL, API_EXTERNAL_URL
 # ============================================================
 
 services:
@@ -59,24 +61,19 @@ services:
       GOTRUE_API_PORT: 9999
       API_EXTERNAL_URL: ${API_EXTERNAL_URL}
       GOTRUE_DB_DRIVER: postgres
-      # User postgres (superuser do Coolify) — evita depender de bootstrap de roles
-      GOTRUE_DB_DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}?search_path=auth
+      # URL completa (evita falha de interpolação POSTGRES_* no Coolify)
+      GOTRUE_DB_DATABASE_URL: ${DATABASE_URL}?search_path=auth
       GOTRUE_SITE_URL: ${SITE_URL}
       GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
-      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      GOTRUE_DISABLE_SIGNUP: "false"
       GOTRUE_JWT_ADMIN_ROLES: service_role
       GOTRUE_JWT_AUD: authenticated
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
-      GOTRUE_JWT_EXP: ${JWT_EXPIRY:-3600}
+      GOTRUE_JWT_EXP: "3600"
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
-      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP:-true}
-      GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM:-true}
-      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-}
-      GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
-      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
-      GOTRUE_SMTP_USER: ${SMTP_USER:-}
-      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
-      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-WACRM}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_SMTP_SENDER_NAME: WACRM
     networks:
       - coolify
 
@@ -84,13 +81,14 @@ services:
     image: postgrest/postgrest:v12.2.12
     restart: unless-stopped
     environment:
-      PGRST_DB_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
-      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,storage}
-      PGRST_DB_ANON_ROLE: anon
+      PGRST_DB_URI: ${DATABASE_URL}
+      PGRST_DB_SCHEMAS: public,storage
+      # postgres (superuser) até o role authenticator estar alinhado
+      PGRST_DB_ANON_ROLE: postgres
       PGRST_JWT_SECRET: ${JWT_SECRET}
       PGRST_DB_USE_LEGACY_GUCS: "false"
       PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
-      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY:-3600}
+      PGRST_APP_SETTINGS_JWT_EXP: "3600"
     networks:
       - coolify
 
@@ -100,10 +98,10 @@ services:
     environment:
       PORT: 4000
       DB_HOST: ${POSTGRES_HOST}
-      DB_PORT: ${POSTGRES_PORT:-5432}
-      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PORT: "5432"
+      DB_USER: postgres
       DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_NAME: ${POSTGRES_DB}
+      DB_NAME: wacrm
       DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
       DB_ENC_KEY: ${REALTIME_DB_ENC_KEY:-supabaserealtime}
       API_JWT_SECRET: ${JWT_SECRET}
@@ -127,7 +125,7 @@ services:
       SERVICE_KEY: ${SERVICE_ROLE_KEY}
       POSTGREST_URL: http://rest:3000
       PGRST_JWT_SECRET: ${JWT_SECRET}
-      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT:-5432}/${POSTGRES_DB}
+      DATABASE_URL: ${DATABASE_URL}
       FILE_SIZE_LIMIT: 52428800
       STORAGE_BACKEND: file
       FILE_STORAGE_BACKEND_PATH: /var/lib/storage
