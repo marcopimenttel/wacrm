@@ -61,8 +61,8 @@ services:
       GOTRUE_API_PORT: 9999
       API_EXTERNAL_URL: ${API_EXTERNAL_URL}
       GOTRUE_DB_DRIVER: postgres
-      # Mesmo padrão do Realtime (que já sobe) — sem concatenar ?search_path
-      GOTRUE_DB_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/wacrm
+      # search_path=auth é obrigatório — senão enums/tabelas vão para public e quebram MFA
+      GOTRUE_DB_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/wacrm?search_path=auth
       GOTRUE_DB_NAMESPACE: auth
       GOTRUE_SITE_URL: ${SITE_URL}
       GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
