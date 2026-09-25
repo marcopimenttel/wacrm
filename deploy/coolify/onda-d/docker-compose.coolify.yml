@@ -8,12 +8,13 @@ services:
   gateway:
     image: caddy:2.8-alpine
     restart: unless-stopped
+    user: root
     expose:
       - "8000"
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        cat > /etc/caddy/Caddyfile <<'EOF'
+        cat > /tmp/Caddyfile <<'EOF'
         {
         	admin off
         }
@@ -39,7 +40,7 @@ services:
         	}
         }
         EOF
-        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+        exec caddy run --config /tmp/Caddyfile --adapter caddyfile
     depends_on:
       - auth
       - rest
