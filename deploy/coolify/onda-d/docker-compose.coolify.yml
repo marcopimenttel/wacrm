@@ -39,17 +39,41 @@ services:
         	header Access-Control-Expose-Headers "content-range, x-supabase-api-version"
 
         	handle_path /auth/v1/* {
-        		reverse_proxy auth:9999
+        		reverse_proxy auth:9999 {
+        			header_down -Access-Control-Allow-Origin
+        			header_down -Access-Control-Allow-Credentials
+        			header_down -Access-Control-Allow-Headers
+        			header_down -Access-Control-Allow-Methods
+        			header_down -Access-Control-Expose-Headers
+        		}
         	}
         	handle_path /rest/v1/* {
-        		reverse_proxy rest:3000
+        		reverse_proxy rest:3000 {
+        			header_down -Access-Control-Allow-Origin
+        			header_down -Access-Control-Allow-Credentials
+        			header_down -Access-Control-Allow-Headers
+        			header_down -Access-Control-Allow-Methods
+        			header_down -Access-Control-Expose-Headers
+        		}
         	}
         	handle_path /realtime/v1/* {
         		rewrite * /socket{uri}
-        		reverse_proxy realtime:4000
+        		reverse_proxy realtime:4000 {
+        			header_down -Access-Control-Allow-Origin
+        			header_down -Access-Control-Allow-Credentials
+        			header_down -Access-Control-Allow-Headers
+        			header_down -Access-Control-Allow-Methods
+        			header_down -Access-Control-Expose-Headers
+        		}
         	}
         	handle_path /storage/v1/* {
-        		reverse_proxy storage:5000
+        		reverse_proxy storage:5000 {
+        			header_down -Access-Control-Allow-Origin
+        			header_down -Access-Control-Allow-Credentials
+        			header_down -Access-Control-Allow-Headers
+        			header_down -Access-Control-Allow-Methods
+        			header_down -Access-Control-Expose-Headers
+        		}
         	}
         	handle /health {
         		respond "ok" 200
