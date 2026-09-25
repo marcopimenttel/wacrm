@@ -41,7 +41,7 @@ Guarde `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY`, `SECRET_KEY_BASE`.
 3. Compose file: `docker-compose.yml`
 4. Cole as variáveis de `.env.example` (com senha real do `wacrm-db`)
 5. Garanta que o compose está na **mesma rede** do `wacrm-db` (mesmo project Coolify costuma bastar; senão use rede `coolify` external)
-6. Domains: `https://apicrm.euapoio.cloud` na porta **8000** (Caddy)
+6. Domains: `https://apicrm.euapoio.cloud` na porta **80** (Caddy; padrão Coolify/Traefik)
 7. Deploy
 
 ### 3. Bootstrap + migrations no DB

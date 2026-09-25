@@ -1,9 +1,10 @@
 # Gateway Caddy — API estilo Supabase (/auth/v1, /rest/v1, /realtime/v1, /storage/v1)
+# Coolify/Traefik usa porta 80 por padrão no domínio do serviço.
 {
 	admin off
 }
 
-:8000 {
+:80 {
 	handle_path /auth/v1/* {
 		reverse_proxy auth:9999
 	}
