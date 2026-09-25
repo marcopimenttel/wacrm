@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
     user: root
     expose:
-      - "8000"
+      - "80"
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -18,7 +18,7 @@ services:
         {
         	admin off
         }
-        :8000 {
+        :80 {
         	handle_path /auth/v1/* {
         		reverse_proxy auth:9999
         	}
