@@ -20,7 +20,9 @@ O cliente JS continua falando `/auth/v1`, `/rest/v1`, `/realtime/v1`, `/storage/
 
 1. `wacrm-db` healthy com imagem **supabase/postgres** (não Postgres “vanilla”, se possível).
 2. DNS: `apicrm.euapoio.cloud` → IP da VPS (`168.231.100.18`).
-3. Node local com `pg_dump`/`psql` se for migrar dados do Cloud.
+3. No env do `wacrm-api`: `POSTGRES_HOST` = UUID interno do DB (ex. `lu1fp0…`), `POSTGRES_DB=wacrm`.
+4. Roles/schemas no DB `wacrm` (rode o bootstrap abaixo se Auth/Rest ficarem em Restarting).
+5. Node local com `pg_dump`/`psql` se for migrar dados do Cloud.
 
 ## Passo a passo (Coolify)
 
@@ -43,6 +45,21 @@ Guarde `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY`, `SECRET_KEY_BASE`.
 5. Garanta que o compose está na **mesma rede** do `wacrm-db` (mesmo project Coolify costuma bastar; senão use rede `coolify` external)
 6. Domains: `https://apicrm.euapoio.cloud` na porta **80** (Caddy; padrão Coolify/Traefik)
 7. Deploy
+
+### 2b. Se Auth / Rest / Storage ficarem em Restarting
+
+O gateway pode estar saudável (`/health` → `ok`) e o stack ainda **Degraded** — isso é normal até os backends conectarem no DB certo.
+
+1. Confira env: `POSTGRES_HOST` = hostname interno do `wacrm-db`, `POSTGRES_DB=wacrm` (não `postgres`).
+2. No Coolify → `wacrm-db` → **Terminal**, rode:
+   ```bash
+   psql -U postgres -d wacrm -f - <<'SQL'
+   -- cole o conteúdo de deploy/coolify/onda-d/init/01-bootstrap-roles.sql
+   SQL
+   ```
+   Ou abra `psql -U postgres -d wacrm` e cole o SQL do arquivo.
+3. Em `wacrm-api` → **Logs** → serviço **Auth** (e **Rest**) se ainda falhar.
+4. Fantasma **Db Bootstrap**: Settings → **Delete** (não está mais no compose).
 
 ### 3. Bootstrap + migrations no DB
 

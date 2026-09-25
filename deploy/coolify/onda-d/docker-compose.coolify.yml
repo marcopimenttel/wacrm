@@ -1,7 +1,9 @@
 # ============================================================
 # Coolify "Docker Compose Empty" — cole este YAML no editor
 # Domínio: https://apicrm.euapoio.cloud → gateway:80 (porta padrão Coolify/Traefik)
-# DB: wacrm-db na rede coolify (POSTGRES_HOST = id interno)
+# DB: wacrm-db na rede coolify
+#   POSTGRES_HOST = id interno (ex. lu1fp0hmhzgn5gusipz4fx2r)
+#   POSTGRES_DB   = wacrm  (Initial Database do Coolify)
 # ============================================================
 
 services:
