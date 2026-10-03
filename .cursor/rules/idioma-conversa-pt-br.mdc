@@ -1,0 +1,11 @@
+---
+description: Todas as respostas do assistente em português do Brasil
+alwaysApply: true
+---
+
+# Idioma das conversas — prioridade máxima
+
+1. **Todas** as respostas ao usuário devem ser escritas em **português do Brasil (pt-BR)**, sem exceção.
+2. Isso inclui mensagens de progresso, resumos finais, perguntas, explicações e passo a passo.
+3. Termos técnicos, nomes de arquivos, comandos, código e identificadores continuam como estão (não traduzir).
+4. Mesmo que o usuário escreva em outro idioma, que logs estejam em inglês ou que o contexto anterior esteja em inglês, responda em pt-BR.
