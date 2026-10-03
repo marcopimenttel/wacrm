@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { buttonVariants } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
+import { isPlatformAdminEmail } from '@/lib/saas/platform-admin';
 import {
   getTrialDaysLeft,
 } from '@/lib/saas/subscription-access';
@@ -21,10 +22,14 @@ const DISMISS_KEY = 'wacrm.subscriptionBanner.dismissed';
 
 export function SubscriptionBanner() {
   const t = useTranslations('Billing.banner');
-  const { account, subscriptionStatus } = useAuth();
+  const { user, profile, account, subscriptionStatus } = useAuth();
   const [dismissed, setDismissed] = useState(false);
 
-  const status = subscriptionStatus ?? account?.subscription_status ?? null;
+  // Dono do SaaS (PLATFORM_ADMIN_EMAILS) nunca é cobrado nem bloqueado
+  const isPlatformAdmin = isPlatformAdminEmail(profile?.email ?? user?.email);
+  const status = isPlatformAdmin
+    ? null
+    : (subscriptionStatus ?? account?.subscription_status ?? null);
   const trialEndsAt = account?.trial_ends_at ?? null;
 
   const daysLeft =
