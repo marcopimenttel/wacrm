@@ -52,15 +52,16 @@ ALTER SCHEMA auth OWNER TO postgres;
 GRANT ALL ON SCHEMA auth TO postgres, supabase_auth_admin;
 GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 
--- Funções mínimas usadas pelas policies do WACRM (GoTrue/Supabase as substituem)
+-- Funções usadas pelas policies do WACRM. PostgREST 12 envia
+-- request.jwt.claims (JSON); o formato legado claim.sub fica como fallback.
 CREATE OR REPLACE FUNCTION auth.uid()
 RETURNS uuid
 LANGUAGE sql
 STABLE
 AS $$
-  SELECT NULLIF(
-    current_setting('request.jwt.claim.sub', true),
-    ''
+  SELECT COALESCE(
+    NULLIF(current_setting('request.jwt.claim.sub', true), ''),
+    NULLIF(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
   )::uuid;
 $$;
 
@@ -69,9 +70,9 @@ RETURNS text
 LANGUAGE sql
 STABLE
 AS $$
-  SELECT NULLIF(
-    current_setting('request.jwt.claim.role', true),
-    ''
+  SELECT COALESCE(
+    NULLIF(current_setting('request.jwt.claim.role', true), ''),
+    NULLIF(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'
   )::text;
 $$;
 
